@@ -9,7 +9,8 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { GeoPoint } from "firebase/firestore";
+import { GeoPoint, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../firebaseServices/firebaseConfig";
 import ReactDOMServer from "react-dom/server";
 
 import MarkerClusterGroup from "react-leaflet-markercluster";
@@ -41,6 +42,8 @@ import {
   Edit,
   House,
   Award,
+  Filter,
+  Menu,
 } from "lucide-react";
 
 import {
@@ -63,7 +66,11 @@ import {
   updateReportApprovalStatus,
   getReportImageURL,
 } from "../firebaseServices/database/reportsFunctions";
-import { listenToUserConnections } from "../firebaseServices/database/usersFunctions";
+import {
+  listenToUserConnections,
+  addReportIdToUserUpvoted,
+  addReportIdToUserDownvoted,
+} from "../firebaseServices/database/usersFunctions";
 
 import useAuth from "../firebaseServices/auth/useAuth";
 
@@ -199,6 +206,19 @@ function DefaultSidebarPanel() {
   );
 }
 
+const formatTimestamp = (ts) => {
+  if (!ts) return "N/A";
+  let date;
+  if (ts.toDate) {
+    date = ts.toDate();
+  } else if (typeof ts === "string" || typeof ts === "number") {
+    date = new Date(ts);
+  } else {
+    return "Invalid Date";
+  }
+  return date.toLocaleString();
+};
+
 function MarkerDetailsPanel({
   marker,
   onUpvote,
@@ -207,6 +227,7 @@ function MarkerDetailsPanel({
   userRole,
   onApprove,
   onReject,
+  onEditStatus,
 }) {
   const {
     type,
@@ -223,6 +244,7 @@ function MarkerDetailsPanel({
     isPlanned,
     startTime,
     endTime,
+    timeCreated,
     displayName,
     credibilityScore,
     profileImageUrl,
@@ -237,19 +259,6 @@ function MarkerDetailsPanel({
     }[type] || "";
 
   const finalImageUrl = imageURL || imageUrl;
-
-  const formatTimestamp = (ts) => {
-    if (!ts) return "N/A";
-    let date;
-    if (ts.toDate) {
-      date = ts.toDate();
-    } else if (typeof ts === "string" || typeof ts === "number") {
-      date = new Date(ts);
-    } else {
-      return "Invalid Date";
-    }
-    return date.toLocaleString();
-  };
 
   const isUpvoted = currentVote === "up";
   const isDownvoted = currentVote === "down";
@@ -286,9 +295,7 @@ function MarkerDetailsPanel({
       {description && (
         <div className="details">
           <h4>Details</h4>
-          <p className="detail-description">
-            {description}
-          </p>
+          <p className="detail-description">{description}</p>
           {type === "hazard" && (
             <p>
               <strong>Type:</strong>{" "}
@@ -301,13 +308,34 @@ function MarkerDetailsPanel({
               </span>
             </p>
           )}
-          {(type === "announcement" || (type === "hazard" && isPlanned)) && (
+
+          {timeCreated && (
+            <p>
+              <strong>
+                Reported:
+              </strong>{" "}
+              {formatTimestamp(timeCreated)}
+            </p>
+          )}
+
+          {isPlanned && (
             <>
               <p>
                 <strong>Starts:</strong> {formatTimestamp(startTime)}
               </p>
               <p>
                 <strong>Ends:</strong> {formatTimestamp(endTime)}
+              </p>
+            </>
+          )}
+
+          {!isPlanned && type !== "connection" && type !== "announcement" && (
+            <>
+              <p>
+                <strong>Discovered:</strong> {formatTimestamp(startTime)}
+              </p>
+              <p>
+                <strong>Fixed:</strong> {formatTimestamp(endTime)}
               </p>
             </>
           )}
@@ -348,23 +376,32 @@ function MarkerDetailsPanel({
         </p>
       </div>
 
-      {isAdmin && isPending && type !== "announcement" && type !== "connection" && (
+      {isAdmin && type !== "announcement" && type !== "connection" && (
         <div className="admin-approval-controls">
           <h4>Admin Action</h4>
-          <div className="admin-buttons">
+          {isPending ? (
+            <div className="admin-buttons">
+              <button
+                className="button-primary approve-button"
+                onClick={onApprove}
+              >
+                <Check size={18} /> Approve
+              </button>
+              <button
+                className="button-secondary reject-button"
+                onClick={onReject}
+              >
+                <XCircle size={18} /> Reject
+              </button>
+            </div>
+          ) : (
             <button
-              className="button-primary approve-button"
-              onClick={onApprove}
+              className="button-primary edit-status-button"
+              onClick={onEditStatus}
             >
-              <Check size={18} /> Approve
+              <Edit size={18} /> Edit Status
             </button>
-            <button
-              className="button-secondary reject-button"
-              onClick={onReject}
-            >
-              <XCircle size={18} /> Reject
-            </button>
-          </div>
+          )}
         </div>
       )}
 
@@ -404,13 +441,15 @@ function Sidebar({
   userRole,
   onApprove,
   onReject,
+  onEditStatus,
+  isOpen,
 }) {
   const currentVote = selectedMarker
     ? votedItems[selectedMarker.id]
     : null;
 
   return (
-    <aside className="info-sidebar">
+    <aside className={`info-sidebar ${isOpen ? "open" : ""}`}>
       <div className="sidebar-content-wrapper">
         <div className="sidebar-section">
           {selectedMarker ? (
@@ -422,6 +461,7 @@ function Sidebar({
               userRole={userRole}
               onApprove={onApprove}
               onReject={onReject}
+              onEditStatus={onEditStatus}
             />
           ) : (
             <DefaultSidebarPanel />
@@ -440,15 +480,11 @@ function AddPinModal({
   currentUserRole,
   onDrawArea,
   polygonPoints,
+  formData,
+  onFormChange,
 }) {
-  const [formData, setFormData] = useState(initialFormData);
   const [isUploading, setIsUploading] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      setFormData(initialFormData);
-    }
-  }, [isOpen]);
+  const [maxPoints, setMaxPoints] = useState(3);
 
   if (!isOpen || !markerInfo) return null;
 
@@ -458,21 +494,25 @@ function AddPinModal({
     currentUserRole === "admin" &&
     formData.isPlanned;
 
-  const handleFormChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
-
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setFormData((prev) => ({
-        ...prev,
+      onFormChange({
+        ...formData,
         imageFile: e.target.files[0],
-      }));
+      });
     }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    onFormChange({
+      ...formData,
+      [name]: type === "checkbox" ? checked : value,
+    });
+  };
+
+  const handleStartDrawing = () => {
+    onDrawArea(maxPoints);
   };
 
   const handleSubmit = async (e) => {
@@ -543,7 +583,7 @@ function AddPinModal({
               id="title"
               name="title"
               value={formData.title}
-              onChange={handleFormChange}
+              onChange={handleInputChange}
               required
               disabled={isUploading}
             />
@@ -555,7 +595,7 @@ function AddPinModal({
               id="description"
               name="description"
               value={formData.description}
-              onChange={handleFormChange}
+              onChange={handleInputChange}
               rows="4"
               required
               disabled={isUploading}
@@ -583,7 +623,7 @@ function AddPinModal({
                 id="isPlanned"
                 name="isPlanned"
                 checked={formData.isPlanned}
-                onChange={handleFormChange}
+                onChange={handleInputChange}
                 disabled={isUploading}
               />
               <label htmlFor="isPlanned">Is this a planned outage?</label>
@@ -599,7 +639,7 @@ function AddPinModal({
                   id="startTime"
                   name="startTime"
                   value={formData.startTime}
-                  onChange={handleFormChange}
+                  onChange={handleInputChange}
                   disabled={isUploading}
                 />
               </div>
@@ -610,7 +650,7 @@ function AddPinModal({
                   id="endTime"
                   name="endTime"
                   value={formData.endTime}
-                  onChange={handleFormChange}
+                  onChange={handleInputChange}
                   disabled={isUploading}
                 />
               </div>
@@ -618,17 +658,28 @@ function AddPinModal({
           )}
 
           {(type === "announcement" || isPlannedHazard) && (
-            <div className="form-group">
+            <div className="form-group draw-area-group">
               <label>Affected Area</label>
-              <button
-                type="button"
-                className="button-secondary"
-                onClick={onDrawArea}
-                disabled={isUploading}
-              >
-                <Edit size={16} />
-                {polygonPoints.length > 0 ? `Redraw Area (${polygonPoints.length} points)` : "Draw Area"}
-              </button>
+              <div className="draw-area-controls">
+                <input
+                  type="number"
+                  min="3"
+                  max="10"
+                  value={maxPoints}
+                  onChange={(e) => setMaxPoints(parseInt(e.target.value) || 3)}
+                  className="point-input"
+                  disabled={isUploading}
+                />
+                <button
+                  type="button"
+                  className="button-secondary"
+                  onClick={handleStartDrawing}
+                  disabled={isUploading}
+                >
+                  <Edit size={16} />
+                  {polygonPoints.length > 0 ? `Redraw Area (${polygonPoints.length} pts)` : "Draw Area"}
+                </button>
+              </div>
             </div>
           )}
 
@@ -647,6 +698,156 @@ function AddPinModal({
               disabled={isUploading}
             >
               {isUploading ? "Submitting..." : "Submit"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function EditStatusModal({ isOpen, onClose, marker, onStatusUpdate }) {
+  const [responseStatus, setResponseStatus] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (marker) {
+      setResponseStatus(marker.responseStatus || "not started");
+
+      const formatForInput = (ts) => {
+        if (!ts) return "";
+        const date = ts.toDate ? ts.toDate() : new Date(ts);
+        return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+          .toISOString()
+          .slice(0, 16);
+      };
+
+      setStartTime(formatForInput(marker.startTime));
+      setEndTime(formatForInput(marker.endTime));
+    }
+  }, [marker]);
+
+  if (!isOpen || !marker) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    const dates = {
+      startTime: startTime ? new Date(startTime) : serverTimestamp(),
+      endTime: endTime ? new Date(endTime) : null,
+    };
+
+    if (responseStatus === "fixed" && !dates.endTime) {
+      dates.endTime = serverTimestamp();
+    }
+    
+    if (responseStatus === "in progress" && !dates.startTime && !marker.startTime) {
+      dates.startTime = serverTimestamp();
+    }
+    
+    if (responseStatus === 'not started') {
+        dates.startTime = null;
+        dates.endTime = null;
+    }
+
+    try {
+      await onStatusUpdate(marker, responseStatus, dates);
+    } catch (err) {
+      console.error("Failed to update status:", err);
+    } finally {
+      setIsLoading(false);
+      onClose();
+    }
+  };
+
+  const isUnplanned = !marker.isPlanned && marker.type === "hazard";
+  const isReport = marker.type === "report";
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <form onSubmit={handleSubmit}>
+          <div className="modal-header">
+            <h3>Update Status</h3>
+            <button
+              type="button"
+              onClick={onClose}
+              className="modal-close-button"
+              disabled={isLoading}
+            >
+              <X size={24} />
+            </button>
+          </div>
+
+          <p className="modal-subtitle">
+            Editing status for: <strong>{marker.title}</strong>
+          </p>
+
+          <div className="form-group">
+            <label htmlFor="responseStatus">Response Status</label>
+            <select
+              id="responseStatus"
+              name="responseStatus"
+              value={responseStatus}
+              onChange={(e) => setResponseStatus(e.target.value)}
+              disabled={isLoading}
+            >
+              <option value="not started">Not Started</option>
+              <option value="in progress">In Progress</option>
+              <option value="fixed">Fixed</option>
+            </select>
+          </div>
+
+          {(isUnplanned || isReport) && (
+            <div className="form-group">
+              <label htmlFor="startTime">
+                {isUnplanned ? "Discovered Date" : "Start Date"}
+              </label>
+              <input
+                type="datetime-local"
+                id="startTime"
+                name="startTime"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                disabled={isLoading || responseStatus === 'not started'}
+              />
+            </div>
+          )}
+
+          {(isUnplanned || isReport) && (
+            <div className="form-group">
+              <label htmlFor="endTime">
+                {isUnplanned ? "Fixed Date" : "End Date"}
+              </label>
+              <input
+                type="datetime-local"
+                id="endTime"
+                name="endTime"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                disabled={isLoading || responseStatus !== 'fixed'}
+              />
+            </div>
+          )}
+
+          <div className="modal-footer">
+            <button
+              type="button"
+              onClick={onClose}
+              className="button-secondary"
+              disabled={isLoading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="button-primary"
+              disabled={isLoading}
+            >
+              {isLoading ? "Updating..." : "Update Status"}
             </button>
           </div>
         </form>
@@ -808,6 +1009,76 @@ function LayerMenu({ onSetLayer }) {
   );
 }
 
+function FilterMenu({ filters, onFilterChange }) {
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+
+  const handleToggle = (filterName) => {
+    onFilterChange((prev) => ({
+      ...prev,
+      [filterName]: !prev[filterName],
+    }));
+  };
+
+  return (
+    <div
+      className={`control-group expandable-menu ${
+        isFilterMenuOpen ? "menu-open" : ""
+      }`}
+    >
+      <div className="sub-buttons filter-buttons">
+        <button
+          className={`map-button-circle filter-button ${
+            filters.report ? "active" : ""
+          }`}
+          title="Toggle Reports"
+          aria-label="Toggle reports"
+          onClick={() => handleToggle("report")}
+        >
+          <Flag size={20} />
+        </button>
+        <button
+          className={`map-button-circle filter-button ${
+            filters.hazard ? "active" : ""
+          }`}
+          title="Toggle Outages"
+          aria-label="Toggle outages"
+          onClick={() => handleToggle("hazard")}
+        >
+          <TriangleAlert size={20} />
+        </button>
+        <button
+          className={`map-button-circle filter-button ${
+            filters.announcement ? "active" : ""
+          }`}
+          title="Toggle Announcements"
+          aria-label="Toggle announcements"
+          onClick={() => handleToggle("announcement")}
+        >
+          <Megaphone size={20} />
+        </button>
+        <button
+          className={`map-button-circle filter-button ${
+            filters.connection ? "active" : ""
+          }`}
+          title="Toggle Connections"
+          aria-label="Toggle connections"
+          onClick={() => handleToggle("connection")}
+        >
+          <House size={20} />
+        </button>
+      </div>
+      <button
+        className="map-button-circle menu-toggle-button toggle-filters"
+        title="Filter Markers"
+        aria-label="Toggle filter menu"
+        onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
+      >
+        <Filter size={20} />
+      </button>
+    </div>
+  );
+}
+
 function MapControls({
   markerMode,
   onSetMode,
@@ -815,6 +1086,8 @@ function MapControls({
   onZoomOut,
   onSetLayer,
   userRole,
+  filters,
+  onFilterChange,
 }) {
   return (
     <div className="controls-bottom-right">
@@ -828,21 +1101,27 @@ function MapControls({
       )}
 
       <ZoomControls onZoomIn={onZoomIn} onZoomOut={onZoomOut} />
+      <FilterMenu filters={filters} onFilterChange={onFilterChange} />
       <PinMenu onSetMode={onSetMode} userRole={userRole} />
       <LayerMenu onSetLayer={onSetLayer} />
     </div>
   );
 }
 
-function DrawingControls({ onFinish, onCancel }) {
+function DrawingControls({ onFinish, onCancel, pointCount, maxPoints }) {
   return (
     <div className="drawing-controls">
       <div className="drawing-notice">
         <Edit size={16} />
         <strong>Drawing Mode:</strong> Click to add points
+        ({pointCount}/{maxPoints})
       </div>
       <div className="drawing-buttons">
-        <button className="button-primary" onClick={onFinish}>
+        <button
+          className="button-primary"
+          onClick={onFinish}
+          disabled={pointCount < 3}
+        >
           Finish Drawing
         </button>
         <button className="button-secondary" onClick={onCancel}>
@@ -879,6 +1158,7 @@ export default function MapPage() {
   const [connections, setConnections] = useState([]);
 
   const [selectedMarker, setSelectedMarker] = useState(null);
+  const [editingMarker, setEditingMarker] = useState(null);
   const [markerMode, setMarkerMode] = useState("none");
   const [currentLayer, setCurrentLayer] = useState(mapLayers.light);
   const [toast, setToast] = useState({ isVisible: false, message: "" });
@@ -887,9 +1167,22 @@ export default function MapPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newMarkerInfo, setNewMarkerInfo] = useState(null);
   const [votedItems, setVotedItems] = useState({});
+  const [formData, setFormData] = useState(initialFormData);
 
   const [isDrawing, setIsDrawing] = useState(false);
   const [polygonPoints, setPolygonPoints] = useState([]);
+  const [maxPolygonPoints, setMaxPolygonPoints] = useState(0);
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState(
+    window.innerWidth > 768
+  );
+
+  const [filters, setFilters] = useState({
+    report: true,
+    hazard: true,
+    announcement: true,
+    connection: true,
+  });
 
   const defaultCenter = [14.589615, 121.065289];
   const zoom = 6;
@@ -928,17 +1221,38 @@ export default function MapPage() {
     };
   }, [user]);
 
+  useEffect(() => {
+    if (firestoreUser) {
+      const votes = {};
+      if (firestoreUser.reportIdsUpvoted) {
+        for (const reportId in firestoreUser.reportIdsUpvoted) {
+          votes[reportId] = "up";
+        }
+      }
+      if (firestoreUser.reportIdsDownvoted) {
+        for (const reportId in firestoreUser.reportIdsDownvoted) {
+          votes[reportId] = "down";
+        }
+      }
+      setVotedItems(votes);
+    }
+  }, [firestoreUser]);
+
   const allMarkers = useMemo(() => {
     const visibleReports = reports.filter(
-      (r) => isAdmin || r.approvalStatus === "approved"
+      (r) => (isAdmin || r.approvalStatus === "approved") && filters.report
     );
     const visibleOutages = outages.filter(
-      (o) => isAdmin || o.approvalStatus === "approved"
+      (o) => (isAdmin || o.approvalStatus === "approved") && filters.hazard
     );
     const visibleConnections = connections.filter(
       (c) =>
-        c.locationSharingPrivacy === "public" ||
-        c.locationSharingPrivacy === "connectionsOnly"
+        (c.locationSharingPrivacy === "public" ||
+          c.locationSharingPrivacy === "connectionsOnly") &&
+        filters.connection
+    );
+    const visibleAnnouncements = announcements.filter(
+      () => filters.announcement
     );
 
     const reportMarkers = visibleReports
@@ -961,7 +1275,7 @@ export default function MapPage() {
         type: "hazard",
       }));
 
-    const announcementMarkers = announcements
+    const announcementMarkers = visibleAnnouncements
       .filter((a) => a.location?.latitude && a.location?.longitude)
       .map((a) => ({
         ...a,
@@ -987,11 +1301,11 @@ export default function MapPage() {
       announcement: announcementMarkers,
       connection: connectionMarkers,
     };
-  }, [reports, outages, announcements, connections, isAdmin]);
+  }, [reports, outages, announcements, connections, isAdmin, filters]);
 
   const showToast = (message) => {
     setToast({ isVisible: true, message });
-    setTimeout(() => setToast({ isVisible: false, message: "" }), 2000);
+    setTimeout(() => setToast({ isVisible: false, message: "" }), 4000);
   };
 
   const zoomIn = () => map && map.zoomIn();
@@ -1000,14 +1314,25 @@ export default function MapPage() {
   const handleSetMarkerMode = (mode) => {
     setMarkerMode(mode);
     setSelectedMarker(null);
+    if (window.innerWidth <= 768) {
+      setIsSidebarOpen(false);
+    }
   };
 
   const handleMapClick = (latlng, isDrawingClick) => {
     if (isDrawingClick) {
-      setPolygonPoints((prev) => [...prev, latlng]);
+      if (polygonPoints.length < maxPolygonPoints - 1) {
+        setPolygonPoints((prev) => [...prev, latlng]);
+      } else {
+        setPolygonPoints((prev) => [...prev, latlng]);
+        setIsDrawing(false);
+        setIsModalOpen(true);
+        setMaxPolygonPoints(0);
+      }
     } else {
       setNewMarkerInfo({ pos: latlng, type: markerMode });
       setPolygonPoints([]);
+      setFormData(initialFormData);
       setIsModalOpen(true);
       setMarkerMode("none");
     }
@@ -1018,12 +1343,14 @@ export default function MapPage() {
     setNewMarkerInfo(null);
     setPolygonPoints([]);
     setIsDrawing(false);
+    setFormData(initialFormData);
   };
 
-  const handleStartDrawArea = () => {
+  const handleStartDrawArea = (maxPoints) => {
     setIsModalOpen(false);
     setIsDrawing(true);
     setPolygonPoints([]);
+    setMaxPolygonPoints(maxPoints);
   };
 
   const handleFinishDrawArea = () => {
@@ -1059,38 +1386,72 @@ export default function MapPage() {
           userId: user.uid,
         });
       }
-      showToast("Pin added successfully!");
+      showToast("Pin added! Waiting for admin approval.");
     } catch (error) {
       console.error("Failed to add marker:", error);
     }
   };
 
   const handleUpvote = async () => {
-    if (!selectedMarker || !user || votedItems[selectedMarker.id]) return;
+    if (!selectedMarker || !user || votedItems[selectedMarker.id] === "up")
+      return;
     const { id, type } = selectedMarker;
+    const originalMarker = { ...selectedMarker };
+    const originalVotedItems = { ...votedItems };
+
+    const isSwitching = votedItems[id] === "down";
+
+    setVotedItems((prev) => ({ ...prev, [id]: "up" }));
+    setSelectedMarker((prev) => ({
+      ...prev,
+      upvoteCount: (prev.upvoteCount || 0) + 1,
+      downvoteCount: isSwitching
+        ? Math.max(0, (prev.downvoteCount || 0) - 1)
+        : prev.downvoteCount || 0,
+    }));
+
     try {
+      await addReportIdToUserUpvoted(user.uid, id);
       if (type === "report") {
         await incrementReportUpvoteCount(id);
       } else if (type === "hazard") {
         await incrementOutageUpvoteCount(id);
       }
-      setVotedItems((prev) => ({ ...prev, [id]: "up" }));
     } catch (error) {
+      setVotedItems(originalVotedItems);
+      setSelectedMarker(originalMarker);
       console.error("Upvote failed:", error);
     }
   };
 
   const handleDownvote = async () => {
-    if (!selectedMarker || !user || votedItems[selectedMarker.id]) return;
+    if (!selectedMarker || !user || votedItems[selectedMarker.id] === "down")
+      return;
     const { id, type } = selectedMarker;
+    const originalMarker = { ...selectedMarker };
+    const originalVotedItems = { ...votedItems };
+
+    const isSwitching = votedItems[id] === "up";
+
+    setVotedItems((prev) => ({ ...prev, [id]: "down" }));
+    setSelectedMarker((prev) => ({
+      ...prev,
+      downvoteCount: (prev.downvoteCount || 0) + 1,
+      upvoteCount: isSwitching
+        ? Math.max(0, (prev.upvoteCount || 0) - 1)
+        : prev.upvoteCount || 0,
+    }));
+
     try {
+      await addReportIdToUserDownvoted(user.uid, id);
       if (type === "report") {
         await incrementReportDownvoteCount(id);
       } else if (type === "hazard") {
         await incrementOutageDownvoteCount(id);
       }
-      setVotedItems((prev) => ({ ...prev, [id]: "down" }));
     } catch (error) {
+      setVotedItems(originalVotedItems);
+      setSelectedMarker(originalMarker);
       console.error("Downvote failed:", error);
     }
   };
@@ -1133,8 +1494,47 @@ export default function MapPage() {
 
   const handleMarkerClick = (marker) => {
     setSelectedMarker(marker);
+    if (window.innerWidth <= 768) {
+      setIsSidebarOpen(true);
+    }
     if (map) {
       map.flyTo(marker.pos, 15);
+    }
+  };
+
+  const handleEditStatus = () => {
+    setEditingMarker(selectedMarker);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditingMarker(null);
+  };
+
+  const handleUpdateMarkerStatus = async (marker, newStatus, dates) => {
+    const { id, type } = marker;
+    const payload = { ...dates, responseStatus: newStatus };
+
+    try {
+      let docRef;
+      if (type === "report") {
+        docRef = doc(db, "reports", id);
+      } else if (type === "hazard") {
+        docRef = doc(db, "outages", id);
+      }
+
+      if (docRef) {
+        await updateDoc(docRef, payload);
+      }
+
+      setSelectedMarker((prev) => ({
+        ...prev,
+        responseStatus: newStatus,
+        startTime: dates.startTime || prev.startTime,
+        endTime: dates.endTime || prev.endTime,
+      }));
+      showToast("Status updated successfully!");
+    } catch (error) {
+      console.error("Failed to update status:", error);
     }
   };
 
@@ -1154,9 +1554,19 @@ export default function MapPage() {
         currentUserRole={userRole}
         onDrawArea={handleStartDrawArea}
         polygonPoints={polygonPoints}
+        formData={formData}
+        onFormChange={setFormData}
+      />
+
+      <EditStatusModal
+        isOpen={!!editingMarker}
+        onClose={handleCloseEditModal}
+        marker={editingMarker}
+        onStatusUpdate={handleUpdateMarkerStatus}
       />
 
       <Sidebar
+        isOpen={isSidebarOpen}
         selectedMarker={selectedMarker}
         onUpvote={handleUpvote}
         onDownvote={handleDownvote}
@@ -1164,9 +1574,16 @@ export default function MapPage() {
         userRole={userRole}
         onApprove={handleApprove}
         onReject={handleReject}
+        onEditStatus={handleEditStatus}
       />
 
       <main className="map-content">
+        <button
+          className="sidebar-toggle-button"
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        >
+          {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
         <MapContainer
           center={defaultCenter}
           zoom={zoom}
@@ -1292,6 +1709,8 @@ export default function MapPage() {
           <DrawingControls
             onFinish={handleFinishDrawArea}
             onCancel={handleCancelDrawArea}
+            pointCount={polygonPoints.length}
+            maxPoints={maxPolygonPoints}
           />
         )}
 
@@ -1303,6 +1722,8 @@ export default function MapPage() {
             onZoomOut={zoomOut}
             onSetLayer={handleSetLayer}
             userRole={userRole}
+            filters={filters}
+            onFilterChange={setFilters}
           />
         )}
       </main>
