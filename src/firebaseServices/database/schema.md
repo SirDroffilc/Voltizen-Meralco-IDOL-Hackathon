@@ -196,7 +196,7 @@
 9. **`responseStatus`**
 
     - **Type**: `string`
-    - **Description**: Handling status. Values: `"in progress"`, `"fixed"`.
+    - **Description**: Handling status. Values: `"not started"`,`"in progress"`, `"fixed"`.
 
 ### `outages` Collection: Document Schema
 
@@ -260,7 +260,7 @@
 12. **`responseStatus`**
 
     - **Type**: `string`
-    - **Description**: Handling status. Values: `"in progress"`, `"fixed"`.
+    - **Description**: Handling status. Values: `"not started"`,`"in progress"`, `"fixed"`.
 
 ### `announcements` Collection: Document Schema
 
