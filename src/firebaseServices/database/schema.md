@@ -31,22 +31,27 @@
     - **Type**: `geopoint`
     - **Description**: The user's geographical location, represented as latitude and longitude.
 
-6. **`connections`**
+6. **`locationSharingPrivacy`**
+
+    - **Type**: `string`
+    - **Description**: The privacy setting for sharing location. Possible values include `"private"`, `"connectionsOnly"`, and `"public"`.
+
+7. **`connections`**
 
     - **Type**: `map`
     - **Description**: A map of user IDs representing the user's connections. Each key is a `userID` and the value is a `boolean` indicating the connection status.
 
-7. **`pendingRequestsIn`**
+8. **`pendingRequestsIn`**
 
     - **Type**: `map`
     - **Description**: A map of incoming connection requests. Each key is a `userID` and the value is a `boolean` indicating the request status.
 
-8. **`pendingRequestsOut`**
+9. **`pendingRequestsOut`**
 
     - **Type**: `map`
     - **Description**: A map of outgoing connection requests. Each key is a `userID` and the value is a `boolean` indicating the request status.
 
-9. **`consumptionSummary`**
+10. **`consumptionSummary`**
 
     - **Type**: `map`
     - **Description**: A map summarizing the user's electricity consumption data. This is primary data used by other summaries and privacy settings. Contains:
@@ -57,27 +62,27 @@
         - **`estimatedWeeklyBill`**: `number`
         - **`estimatedMonthlyBill`**: `number`
 
-10. **`consumptionSharingPrivacy`**
+11. **`consumptionSharingPrivacy`**
 
     - **Type**: `string`
     - **Description**: The privacy setting for sharing consumption data. Possible values include `"private"`, `"connectionsOnly"`, and `"public"`.
 
-11. **`actualMonthlyBill`**
+12. **`actualMonthlyBill`**
 
     - **Type**: `number`
     - **Description**: The user's actual monthly electricity bill.
 
-12. **`credibilityScore`**
+13. **`credibilityScore`**
 
     - **Type**: `number`
     - **Description**: A score representing the user's credibility within the app.
 
-13. **`lastReportTime`**
+14. **`lastReportTime`**
 
     - **Type**: `timestamp`
     - **Description**: The timestamp of the user's last report submission.
 
-14. **`inventory`**
+15. **`inventory`**
 
     - **Type**: `subcollection`
     - **Description**: The user's inventory of appliances. Each document in this subcollection represents a single appliance (document ID: `applianceId`).
@@ -198,6 +203,16 @@
     - **Type**: `string`
     - **Description**: Handling status. Values: `"not started"`,`"in progress"`, `"fixed"`.
 
+10. **`upvoteCount`**
+
+    - **Type**: `number`
+    - **Description**: Number of upvotes the report has. An upvote indicates that other users have recognized this report as true or valid.
+
+11. **`downvoteCount`**
+
+    - **Type**: `number`
+    - **Description**: Number of downvotes the report has. A downvote indicates that other users have recognized this report as false or invalid.
+
 ### `outages` Collection: Document Schema
 
 #### Fields:
@@ -262,47 +277,61 @@
     - **Type**: `string`
     - **Description**: Handling status. Values: `"not started"`,`"in progress"`, `"fixed"`.
 
+13. **`upvoteCount`**
+
+    - **Type**: `number`
+    - **Description**: Number of upvotes the outage has. An upvote indicates that other users have recognized this outage as true or valid.
+
+14. **`downvoteCount`**
+
+    - **Type**: `number`
+    - **Description**: Number of downvotes the outage has. A downvote indicates that other users have recognized this outage as false or invalid.
+
 ### `announcements` Collection: Document Schema
 
 #### Fields:
 
 1.  **`title`**
 
-    - **Type**: `string`
-    - **Description**: Title of the announcement.
+    -   **Type**: `string`
+    -   **Description**: Title of the announcement.
 
 2.  **`userId`**
 
-    - **Type**: `string`
-    - **Description**: UID of the admin user who created the announcement.
+    -   **Type**: `string`
+    -   **Description**: UID of the admin user who created the announcement.
 
 3.  **`description`**
 
-    - **Type**: `string`
-    - **Description**: Description/body of the announcement.
+    -   **Type**: `string`
+    -   **Description**: Description/body of the announcement.
 
 4.  **`location`**
 
-    - **Type**: `geopoint`
-    - **Description**: Primary location for the event.
+    -   **Type**: `geopoint`
+    -   **Description**: Primary location for the event.
 
 5.  **`geopoints`**
 
-    - **Type**: `array[geopoint]`
-    - **Description**: Array of geopoints used to generate an area polygon for the announcement.
+    -   **Type**: `array[geopoint]`
+    -   **Description**: Array of geopoints used to generate an area polygon for the announcement.
 
 6.  **`startTime`**
 
-    - **Type**: `timestamp`
-    - **Description**: Start time of the announced event.
+    -   **Type**: `timestamp`
+    -   **Description**: Start time of the announced event.
 
 7.  **`endTime`**
 
-    - **Type**: `timestamp`
-    - **Description**: End time of the announced event.
+    -   **Type**: `timestamp`
+    -   **Description**: End time of the announced event.
 
 8.  **`timeCreated`**
 
-    - **Type**: `timestamp`
-    - **Description**: Timestamp when the announcement was uploaded.
+    -   **Type**: `timestamp`
+    -   **Description**: Timestamp when the announcement was uploaded.
 
+9.  **`imageUrl`**
+
+    -   **Type**: `string`
+    -   **Description**: Image URL (Cloudinary) attached to the report.

@@ -1,9 +1,16 @@
-import { listenToUserInventory, addApplianceToInventory, removeApplianceFromInventory, updateApplianceInInventory, getApplianceImageURL } from "../firebaseServices/database/inventoryFunctions";
+import {
+  listenToUserInventory,
+  addApplianceToInventory,
+  removeApplianceFromInventory,
+  updateApplianceInInventory,
+  getApplianceImageURL,
+} from "../firebaseServices/database/inventoryFunctions";
 import { updateConsumptionSharingPrivacy } from "../firebaseServices/database/usersFunctions";
 import useAuth from "../firebaseServices/auth/useAuth";
 import IoTMonitor from "../components/inventory/IoTMonitor";
-import { doc, getDoc } from "firebase/firestore";
-import { useEffect, useState } from "react";
+import EditApplianceForm from "../components/inventory/EditApplianceForm";
+import { useEffect, useState, useMemo } from "react";
+import { ResponsivePie } from "@nivo/pie";
 import styles from "./Inventory.module.css";
 
 function Inventory() {
@@ -32,8 +39,9 @@ function Inventory() {
   const [editingApplianceId, setEditingApplianceId] = useState(null);
   const [editFormData, setEditFormData] = useState(null);
   const [privacySetting, setPrivacySetting] = useState("");
+  const [monitoringApplianceId, setMonitoringApplianceId] = useState(null);
 
-  const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const daysOfWeek = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
   useEffect(() => {
     if (firestoreUser?.consumptionSharingPrivacy) {
@@ -62,6 +70,17 @@ function Inventory() {
       unsubscribe();
     };
   }, [user.uid]);
+
+  const pieData = useMemo(() => {
+    if (!appliances || appliances.length === 0) {
+      return [{ id: "No Data", label: "No Data", value: 1, color: "#cccccc" }];
+    }
+    return appliances.map((app) => ({
+      id: app.name,
+      label: app.name,
+      value: parseFloat(app.monthlyCost?.toFixed(2) || 0),
+    }));
+  }, [appliances]);
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
@@ -102,6 +121,56 @@ function Inventory() {
         [name]: value,
       }));
     }
+  };
+
+  const handleDaySelection = (preset) => {
+    let newDays = { ...formData.specificDaysUsed };
+    const allDays = {
+      monday: true,
+      tuesday: true,
+      wednesday: true,
+      thursday: true,
+      friday: true,
+      saturday: true,
+      sunday: true,
+    };
+    const noDays = {
+      monday: false,
+      tuesday: false,
+      wednesday: false,
+      thursday: false,
+      friday: false,
+      saturday: false,
+      sunday: false,
+    };
+    const weekdays = {
+      ...noDays,
+      monday: true,
+      tuesday: true,
+      wednesday: true,
+      thursday: true,
+      friday: true,
+    };
+    const weekends = {
+      ...noDays,
+      saturday: true,
+      sunday: true,
+    };
+
+    if (preset === "all") {
+      newDays = allDays;
+    } else if (preset === "none") {
+      newDays = noDays;
+    } else if (preset === "weekdays") {
+      newDays = weekdays;
+    } else if (preset === "weekends") {
+      newDays = weekends;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      specificDaysUsed: newDays,
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -165,6 +234,7 @@ function Inventory() {
 
   const handleEditAppliance = (appliance) => {
     setEditingApplianceId(appliance.id);
+    setMonitoringApplianceId(null);
     setEditFormData({
       name: appliance.name,
       type: appliance.type,
@@ -192,15 +262,18 @@ function Inventory() {
     e.preventDefault();
 
     try {
+      const daysPerWeek = Object.values(editFormData.specificDaysUsed).filter(Boolean).length;
+
       const updateData = {
         ...editFormData,
         wattage: parseFloat(editFormData.wattage),
         hoursPerDay: parseFloat(editFormData.hoursPerDay),
         weeksPerMonth: parseInt(editFormData.weeksPerMonth, 10),
+        daysPerWeek,
       };
 
       await updateApplianceInInventory(user.uid, editingApplianceId, updateData);
-      
+
       setEditingApplianceId(null);
       setEditFormData(null);
     } catch (error) {
@@ -218,11 +291,21 @@ function Inventory() {
     }
 
     try {
-      const result = await updateConsumptionSharingPrivacy(user.uid, privacySetting);
+      await updateConsumptionSharingPrivacy(user.uid, privacySetting);
     } catch (error) {
       console.error("Error updating privacy setting:", error);
       alert("Failed to update privacy setting. Please try again.");
     }
+  };
+
+  const handleToggleMonitor = (applianceId) => {
+    setMonitoringApplianceId((prevId) => {
+      const newId = prevId === applianceId ? null : applianceId;
+      if (newId) {
+        setEditingApplianceId(null);
+      }
+      return newId;
+    });
   };
 
   if (loading) {
@@ -234,6 +317,75 @@ function Inventory() {
 
   return (
     <div className={styles.inventoryPageContainer}>
+      <section className={styles.inventorySection}>
+        <h2>Consumption Summary</h2>
+        <div style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", gap: "1.5rem", width: "100%", alignItems: "center" }}>
+          <div style={{ height: "350px", minWidth: "300px", flex: "1 1 60%", boxSizing: "border-box" }}>
+            <ResponsivePie
+              data={pieData}
+              colors={{ scheme: 'spectral' }}
+              margin={{ top: 20, right: 140, bottom: 20, left: 20 }}
+              innerRadius={0.5}
+              padAngle={0.7}
+              cornerRadius={3}
+              activeOuterRadiusOffset={8}
+              borderWidth={1}
+              borderColor={{ from: "color", modifiers: [["darker", 0.2]] }}
+              arcLinkLabelsSkipAngle={10}
+              arcLinkLabelsTextColor="#333333"
+              arcLinkLabelsThickness={2}
+              arcLinkLabelsColor={{ from: "color" }}
+              arcLabelsSkipAngle={10}
+              arcLabelsTextColor={{ from: "color", modifiers: [["darker", 2]] }}
+              legends={[
+                {
+                  anchor: "right",
+                  direction: "column",
+                  justify: false,
+                  translateX: 120,
+                  translateY: 0,
+                  itemsSpacing: 2,
+                  itemWidth: 100,
+                  itemHeight: 20,
+                  itemTextColor: "#999",
+                  itemDirection: "left-to-right",
+                  itemOpacity: 1,
+                  symbolSize: 18,
+                  symbolShape: "circle",
+                  effects: [
+                    {
+                      on: "hover",
+                      style: {
+                        itemTextColor: "#000",
+                      },
+                    },
+                  ],
+                },
+              ]}
+            />
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem", flex: "1 1 30%", minWidth: "200px", boxSizing: "border-box" }}>
+            <div className={styles.summaryItem}>
+              <p>Total Appliances</p>
+              <span>{firestoreUser?.consumptionSummary?.applianceCount ?? 0}</span>
+            </div>
+            <div className={styles.summaryItem}>
+              <p>Est. Daily Bill</p>
+              <span>
+                PHP {firestoreUser?.consumptionSummary?.estimatedDailyBill?.toFixed(2) ?? "0.00"}
+              </span>
+            </div>
+            <div className={styles.summaryItem}>
+              <p>Est. Monthly Bill</p>
+              <span>
+                PHP {firestoreUser?.consumptionSummary?.estimatedMonthlyBill?.toFixed(2) ?? "0.00"}
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className={styles.inventorySection}>
         <h2>Your Inventory</h2>
         {appliances.length > 0 ? (
@@ -272,15 +424,72 @@ function Inventory() {
                   </div>
                 </div>
 
+                {editingApplianceId === appliance.id && (
+                  <EditApplianceForm
+                    applianceId={appliance.id}
+                    editFormData={editFormData}
+                    handleEditChange={handleEditChange}
+                    handleUpdateAppliance={handleUpdateAppliance}
+                    daysOfWeek={daysOfWeek}
+                    styles={styles}
+                    className={styles.span2}
+                  />
+                )}
+                
+                {monitoringApplianceId === appliance.id && (
+                  <IoTMonitor
+                    appliance={appliance}
+                    applianceId={appliance.id}
+                    allAppliances={appliances}
+                  />
+                )}
+                
                 <div className={styles.itemControls}>
-                  <button className={styles.formButton}>Monitor Device</button>
                   <button
-                    className={`${styles.formButton} ${styles.buttonDanger}`}
-                    onClick={() => handleRemoveAppliance(appliance.id)}
+                    className={styles.formButton}
+                    onClick={() => handleToggleMonitor(appliance.id)}
+                    disabled={editingApplianceId === appliance.id}
                   >
-                    Remove
+                    {monitoringApplianceId === appliance.id ? "Hide Monitor" : "Monitor Device"}
                   </button>
+                  <div className={styles.editRemoveGroup}>
+                    {editingApplianceId === appliance.id ? (
+                      <>
+                        <button
+                          type="button"
+                          className={`${styles.formButton} ${styles.buttonDanger}`}
+                          onClick={handleCancelEdit}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className={styles.formButton}
+                          form={`edit-form-${appliance.id}`}
+                        >
+                          Save Changes
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          className={styles.formButton}
+                          onClick={() => handleEditAppliance(appliance)}
+                          disabled={monitoringApplianceId === appliance.id}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className={`${styles.formButton} ${styles.buttonDanger}`}
+                          onClick={() => handleRemoveAppliance(appliance.id)}
+                        >
+                          Remove
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
+
               </div>
             ))}
           </div>
@@ -290,31 +499,10 @@ function Inventory() {
       </section>
 
       <section className={styles.inventorySection}>
-        <h2>Consumption Summary</h2>
-        <div className={styles.summaryGrid}>
-          <div className={styles.summaryItem}>
-            <p>Total Appliances</p>
-            <span>{firestoreUser?.consumptionSummary?.applianceCount ?? 0}</span>
-          </div>
-          <div className={styles.summaryItem}>
-            <p>Est. Daily Bill</p>
-            <span>PHP {firestoreUser?.consumptionSummary?.estimatedDailyBill?.toFixed(2) ?? "0.00"}</span>
-          </div>
-          <div className={styles.summaryItem}>
-            <p>Est. Monthly Bill</p>
-            <span>PHP {firestoreUser?.consumptionSummary?.estimatedMonthlyBill?.toFixed(2) ?? "0.00"}</span>
-          </div>
-          <div className={`${styles.summaryItem} ${styles.topAppliance}`}>
-            <p>Top Appliance</p>
-            <span>{firestoreUser?.consumptionSummary?.topAppliance ?? "N/A"}</span>
-          </div>
-        </div>
-      </section>
-
-      <section className={styles.inventorySection}>
         <h2>Sharing Settings</h2>
         <p>
-          Current Setting: <strong>{firestoreUser?.consumptionSharingPrivacy ?? "Loading..."}</strong>
+          Current Setting:{" "}
+          <strong>{firestoreUser?.consumptionSharingPrivacy ?? "Loading..."}</strong>
         </p>
         <form className={styles.sharingForm} onSubmit={handlePrivacyUpdate}>
           <div className={styles.formGroup}>
@@ -341,7 +529,7 @@ function Inventory() {
 
       <section className={styles.inventorySection}>
         <h2>Add an Appliance</h2>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className={styles.addForm}>
           <div className={styles.formGroup}>
             <label htmlFor="name">Appliance Name</label>
             <input
@@ -387,6 +575,7 @@ function Inventory() {
               id="hoursPerDay"
               className={styles.formInput}
               type="number"
+              step="0.1"
               name="hoursPerDay"
               value={formData.hoursPerDay}
               onChange={handleChange}
@@ -411,7 +600,7 @@ function Inventory() {
               </button>
             </div>
             <div className={styles.daySelectorCheckboxes}>
-              {Object.keys(formData.specificDaysUsed).map((day) => (
+              {daysOfWeek.map((day) => (
                 <label key={day}>
                   <input
                     type="checkbox"
@@ -435,6 +624,8 @@ function Inventory() {
               value={formData.weeksPerMonth}
               onChange={handleChange}
               required
+              min="1"
+              max="4"
             />
           </div>
 

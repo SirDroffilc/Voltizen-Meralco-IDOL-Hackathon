@@ -6,9 +6,9 @@ import Home from './pages/Home';
 import Profile from './pages/Profile/Profile.jsx';
 import Login from "./pages/Login";
 import TestPage from './pages/TestPage';
-import Connections from './pages/Connections';
+import Connections from './pages/Connection/Connections.jsx';
 import MapPage from './pages/MapPage';
-import ConnectionInventory from './pages/ConnectionInventory';
+import ConnectionInventory from './pages/ConnectionInventory/ConnectionInventory.jsx';
 import Inventory from './pages/Inventory';
 
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -25,7 +25,7 @@ function App() {
         <Routes>
             <Route path="/" element={
               <ProtectedRoute>
-                <Home />
+                <MapPage />
               </ProtectedRoute>
             } />
 

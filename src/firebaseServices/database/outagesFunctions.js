@@ -1,6 +1,6 @@
 import { db } from "../firebaseConfig";
 import { where, collection, orderBy, addDoc, doc, updateDoc, getDoc, GeoPoint, deleteField, onSnapshot, query, documentId, deleteDoc, getDocs, serverTimestamp } from "firebase/firestore";
-
+import { incrementUserCredibilityScore, decrementUserCredibilityScore } from "./usersFunctions";
 /**
  * Add an outage document to the `outages` collection.
  *
@@ -59,6 +59,8 @@ export async function addOutage(outageData) {
             timeCreated: serverTimestamp(),
             approvalStatus: approvalStatus || "pending",
             responseStatus: responseStatus || "in progress",
+            upvoteCount: 0,
+            downvoteCount: 0,
         };
 
         const colRef = collection(db, "outages");
@@ -127,6 +129,161 @@ export async function deleteOutage(outageId) {
     console.log(`Outage with ID ${outageId} deleted successfully.`);
   } catch (error) {
     console.error("Error deleting outage:", error);
+    throw error;
+  }
+}
+
+/**
+ * Updates the `responseStatus` field of an outage document in the `outages` collection.
+ *
+ * @param {string} outageId - The ID of the outage document to update.
+ * @param {string} newStatus - The new response status to set. Possible values: "not started", "in progress", "fixed".
+ * @returns {Promise<void>} Resolves when the document is successfully updated.
+ * @throws {Error} If the Firestore operation fails or the input parameters are invalid.
+ */
+export async function updateOutageResponseStatus(outageId, newStatus) {
+  if (!outageId || typeof outageId !== "string") {
+    throw new Error("Valid outageId is required");
+  }
+
+  if (!newStatus || typeof newStatus !== "string") {
+    throw new Error("Valid newStatus is required");
+  }
+
+  try {
+    const docRef = doc(db, "outages", outageId);
+    await updateDoc(docRef, { responseStatus: newStatus });
+    console.log(`Outage with ID ${outageId} updated to responseStatus: ${newStatus}`);
+  } catch (error) {
+    console.error("Error updating outage responseStatus:", error);
+    throw error;
+  }
+}
+
+/**
+ * Updates the `approvalStatus` field of an outage document in the `outages` collection.
+ *
+ * @param {string} outageId - The ID of the outage document to update.
+ * @param {string} newStatus - The new approval status to set. Possible values: "pending", "approved", "rejected".
+ * @returns {Promise<void>} Resolves when the document is successfully updated.
+ * @throws {Error} If the Firestore operation fails or the input parameters are invalid.
+ */
+export async function updateOutageApprovalStatus(outageId, newStatus) {
+  if (!outageId || typeof outageId !== "string") {
+    throw new Error("Valid outageId is required");
+  }
+
+  if (!newStatus || typeof newStatus !== "string") {
+    throw new Error("Valid newStatus is required");
+  }
+
+  try {
+    const docRef = doc(db, "outages", outageId);
+    await updateDoc(docRef, { approvalStatus: newStatus });
+    console.log(`Outage with ID ${outageId} updated to approvalStatus: ${newStatus}`);
+  } catch (error) {
+    console.error("Error updating outage approvalStatus:", error);
+    throw error;
+  }
+}
+
+/**
+ * Retrieves an outage document by its ID from the `outages` collection.
+ *
+ * @param {string} outageId - The ID of the outage document to retrieve.
+ * @returns {Promise<Object>} Resolves with the outage object if found.
+ * @throws {Error} If the Firestore operation fails or the outageId is invalid.
+ */
+export async function getOutageById(outageId) {
+  if (!outageId || typeof outageId !== "string") {
+    throw new Error("Valid outageId is required");
+  }
+
+  try {
+    const docRef = doc(db, "outages", outageId);
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
+      throw new Error(`Outage with ID ${outageId} does not exist.`);
+    }
+
+    return { id: docSnap.id, ...docSnap.data() };
+  } catch (error) {
+    console.error("Error retrieving outage:", error);
+    throw error;
+  }
+}
+
+/**
+ * Increments the upvote count for a specific outage in the `outages` collection.
+ *
+ * - Updates the `upvoteCount` field in Firestore by incrementing it by 1.
+ * - Retrieves the `reporterId` from the outage document and increments the user's credibility score.
+ *
+ * @param {string} outageId - The ID of the outage to increment the upvote count for.
+ * @returns {Promise<void>} Resolves when the operation is successful.
+ * @throws {Error} If the `outageId` is invalid or the Firestore operation fails.
+ */
+export async function incrementOutageUpvoteCount(outageId) {
+  if (!outageId) {
+    throw new Error("Outage ID is required to increment upvote count.");
+  }
+
+  try {
+    const outageDocRef = doc(db, "outages", outageId);
+    await updateDoc(outageDocRef, {
+      upvoteCount: increment(1),
+    });
+
+    const outageDoc = await getDoc(outageDocRef);
+    const reporterId = outageDoc.data().reporterId;
+
+    if (reporterId) {
+      await incrementUserCredibilityScore(reporterId); // Await the function to ensure it completes
+    } else {
+      console.warn(`No reporterId found for outage ${outageId}`);
+    }
+
+    console.log(`Upvote count incremented for outage ${outageId}`);
+  } catch (error) {
+    console.error("Error incrementing upvote count:", error);
+    throw error;
+  }
+}
+
+/**
+ * Increments the downvote count for a specific outage in the `outages` collection.
+ *
+ * - Updates the `downvoteCount` field in Firestore by incrementing it by 1.
+ * - Retrieves the `reporterId` from the outage document and decrements the user's credibility score.
+ *
+ * @param {string} outageId - The ID of the outage to increment the downvote count for.
+ * @returns {Promise<void>} Resolves when the operation is successful.
+ * @throws {Error} If the `outageId` is invalid or the Firestore operation fails.
+ */
+export async function incrementOutageDownvoteCount(outageId) {
+  if (!outageId) {
+    throw new Error("Outage ID is required to increment downvote count.");
+  }
+
+  try {
+    const outageDocRef = doc(db, "outages", outageId);
+    await updateDoc(outageDocRef, {
+      downvoteCount: increment(1),
+    });
+
+    const outageDoc = await getDoc(outageDocRef);
+    const reporterId = outageDoc.data().reporterId;
+
+    if (reporterId) {
+      await decrementUserCredibilityScore(reporterId); // Await the function to ensure it completes
+    } else {
+      console.warn(`No reporterId found for outage ${outageId}`);
+    }
+
+    console.log(`Downvote count incremented for outage ${outageId}`);
+  } catch (error) {
+    console.error("Error incrementing downvote count:", error);
     throw error;
   }
 }

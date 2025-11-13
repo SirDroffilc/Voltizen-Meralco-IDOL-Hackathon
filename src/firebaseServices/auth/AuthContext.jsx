@@ -107,6 +107,7 @@ export function AuthProvider({ children }) {
 						pendingRequestsOut: {},
 						profileImageUrl,
 						userRole: 'regular',
+						locationSharingPrivacy: 'private',
 					});
 				}
 			}

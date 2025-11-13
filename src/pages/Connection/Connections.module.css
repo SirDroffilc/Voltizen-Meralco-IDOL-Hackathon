@@ -1,0 +1,176 @@
+.connectionsContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.headerConnection {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.headerConnection h1 {
+  margin: 0;
+  font-family: "Orbitron", sans-serif;
+  font-size: 1.5rem;
+}
+
+.findButton {
+  font-family: "Orbitron", sans-serif;
+  padding: 0.5rem 1rem;
+  border-radius: 50px;
+  border: none;
+  background: var(--secondary-base);
+  color: var(--secondary-darkest);
+  cursor: pointer;
+}
+
+.connectionList {
+  display: grid;
+  gap: 1rem;
+}
+
+.connectionItem {
+  display: grid;
+  grid-template-columns: 100px 1fr 200px;
+  gap: 1rem;
+  align-items: center;
+  background-color: var(--sidebar-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+}
+
+.connectionImage {
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.connectionImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.connectionMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.connectionMeta h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.connectionMeta p {
+  margin: 0;
+  color: var(--sidebar-text-muted);
+  font-size: 0.95rem;
+}
+
+.connectionActions {
+  display: flex;
+  justify-content: center;
+}
+
+.connectionActions button,
+.sendConnectionRequest button,
+.connectionMeta .connectionsBtn button {
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: var(--secondary-base);
+  color: var(--secondary-darkest);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  min-width: 92px;
+  width: auto; /* allow flexible sizing */
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.sendConnectionRequest button,
+.connectionActions .confirmBtn {
+    width: 12rem;
+}
+
+.connectionMeta .connectionsBtn {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.connectionMeta .connectionsBtn .seeInventoryBtn {
+  background: var(--tertiary-500);
+  color: var(--secondary-darkest);
+}
+
+
+.connectionMeta .connectionsBtn .locateMapBtn {
+  background: var(--secondary-base);
+  color: var(--secondary-darkest);
+}
+
+/* alias used in JSX */
+.connectionActions .locateMapBtn {
+  background: var(--secondary-base);
+  color: var(--secondary-darkest);
+}
+
+.connectionActions .removeConnectionBtn {
+  background: var(--primary-500);
+  color: var(--white);
+}
+
+.connectionActions .requestBtn {
+  background: var(--secondary-base);
+  color: var(--secondary-darkest);
+}
+
+.sendConnectionRequest .confirmBtn {
+  background: var(--blue-v);
+  color: var(--white);
+}
+
+.connectionActions .requestedBtn {
+  background: #e6e6e6;
+  color: #666666;
+}
+
+.connectionActions button:hover:not(:disabled),
+.connectionMeta .connectionsBtn button:hover:not(:disabled) {
+  /* small lift + subtle brighten to highlight the button */
+  filter: brightness(1.04);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.08);
+}
+
+.connectionActions button:active:not(:disabled),
+.connectionMeta .connectionsBtn button:active:not(:disabled) {
+  filter: brightness(1);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.06);
+}
+
+
+
+@media (max-width: 768px) {
+  .connectionItem {
+    grid-template-columns: 80px 1fr;
+    grid-template-rows: auto auto;
+  }
+  .connectionActions {
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
