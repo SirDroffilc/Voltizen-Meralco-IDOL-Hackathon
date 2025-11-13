@@ -1,8 +1,13 @@
-import { listenToUserInventory, addApplianceToInventory, removeApplianceFromInventory, updateApplianceInInventory, getApplianceImageURL } from "../firebaseServices/database/inventoryFunctions";
+import {
+  listenToUserInventory,
+  addApplianceToInventory,
+  removeApplianceFromInventory,
+  updateApplianceInInventory,
+  getApplianceImageURL,
+} from "../firebaseServices/database/inventoryFunctions";
 import { updateConsumptionSharingPrivacy } from "../firebaseServices/database/usersFunctions";
 import useAuth from "../firebaseServices/auth/useAuth";
 import IoTMonitor from "../components/inventory/IoTMonitor";
-import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import styles from "./Inventory.module.css";
 
@@ -32,8 +37,9 @@ function Inventory() {
   const [editingApplianceId, setEditingApplianceId] = useState(null);
   const [editFormData, setEditFormData] = useState(null);
   const [privacySetting, setPrivacySetting] = useState("");
+  const [monitoringApplianceId, setMonitoringApplianceId] = useState(null);
 
-  const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const daysOfWeek = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
   useEffect(() => {
     if (firestoreUser?.consumptionSharingPrivacy) {
@@ -102,6 +108,56 @@ function Inventory() {
         [name]: value,
       }));
     }
+  };
+
+  const handleDaySelection = (preset) => {
+    let newDays = { ...formData.specificDaysUsed };
+    const allDays = {
+      monday: true,
+      tuesday: true,
+      wednesday: true,
+      thursday: true,
+      friday: true,
+      saturday: true,
+      sunday: true,
+    };
+    const noDays = {
+      monday: false,
+      tuesday: false,
+      wednesday: false,
+      thursday: false,
+      friday: false,
+      saturday: false,
+      sunday: false,
+    };
+    const weekdays = {
+      ...noDays,
+      monday: true,
+      tuesday: true,
+      wednesday: true,
+      thursday: true,
+      friday: true,
+    };
+    const weekends = {
+      ...noDays,
+      saturday: true,
+      sunday: true,
+    };
+
+    if (preset === "all") {
+      newDays = allDays;
+    } else if (preset === "none") {
+      newDays = noDays;
+    } else if (preset === "weekdays") {
+      newDays = weekdays;
+    } else if (preset === "weekends") {
+      newDays = weekends;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      specificDaysUsed: newDays,
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -192,15 +248,18 @@ function Inventory() {
     e.preventDefault();
 
     try {
+      const daysPerWeek = Object.values(editFormData.specificDaysUsed).filter(Boolean).length;
+
       const updateData = {
         ...editFormData,
         wattage: parseFloat(editFormData.wattage),
         hoursPerDay: parseFloat(editFormData.hoursPerDay),
         weeksPerMonth: parseInt(editFormData.weeksPerMonth, 10),
+        daysPerWeek,
       };
 
       await updateApplianceInInventory(user.uid, editingApplianceId, updateData);
-      
+
       setEditingApplianceId(null);
       setEditFormData(null);
     } catch (error) {
@@ -218,11 +277,15 @@ function Inventory() {
     }
 
     try {
-      const result = await updateConsumptionSharingPrivacy(user.uid, privacySetting);
+      await updateConsumptionSharingPrivacy(user.uid, privacySetting);
     } catch (error) {
       console.error("Error updating privacy setting:", error);
       alert("Failed to update privacy setting. Please try again.");
     }
+  };
+
+  const handleToggleMonitor = (applianceId) => {
+    setMonitoringApplianceId((prevId) => (prevId === applianceId ? null : applianceId));
   };
 
   if (loading) {
@@ -240,47 +303,174 @@ function Inventory() {
           <div style={{ display: "grid", gap: "1.5rem" }}>
             {appliances.map((appliance) => (
               <div className={styles.applianceItem} key={appliance.id}>
-                <div className={styles.itemHeader}>
-                  <h1>{appliance.name}</h1>
-                  <h6 className={styles.subtitle}>{appliance.type}</h6>
-                </div>
+                {editingApplianceId === appliance.id ? (
+                  <form onSubmit={handleUpdateAppliance} className={styles.addForm}>
+                    <h3 className={styles.span2}>Edit Appliance</h3>
 
-                {appliance.imageUrl && (
-                  <div className={styles.itemImageWrapper}>
-                    <img src={appliance.imageUrl} alt={appliance.name} />
-                  </div>
+                    <div className={styles.formGroup}>
+                      <label htmlFor={`edit-name-${appliance.id}`}>Name:</label>
+                      <input
+                        id={`edit-name-${appliance.id}`}
+                        className={styles.formInput}
+                        type="text"
+                        name="name"
+                        value={editFormData.name}
+                        onChange={handleEditChange}
+                        required
+                      />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label htmlFor={`edit-type-${appliance.id}`}>Type:</label>
+                      <input
+                        id={`edit-type-${appliance.id}`}
+                        className={styles.formInput}
+                        type="text"
+                        name="type"
+                        value={editFormData.type}
+                        onChange={handleEditChange}
+                        required
+                      />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label htmlFor={`edit-wattage-${appliance.id}`}>Wattage (W):</label>
+                      <input
+                        id={`edit-wattage-${appliance.id}`}
+                        className={styles.formInput}
+                        type="number"
+                        name="wattage"
+                        value={editFormData.wattage}
+                        onChange={handleEditChange}
+                        required
+                      />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label htmlFor={`edit-hours-${appliance.id}`}>Hours Per Day:</label>
+                      <input
+                        id={`edit-hours-${appliance.id}`}
+                        className={styles.formInput}
+                        type="number"
+                        step="0.1"
+                        name="hoursPerDay"
+                        value={editFormData.hoursPerDay}
+                        onChange={handleEditChange}
+                        required
+                      />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                      <label htmlFor={`edit-weeks-${appliance.id}`}>Weeks Per Month:</label>
+                      <input
+                        id={`edit-weeks-${appliance.id}`}
+                        className={styles.formInput}
+                        type="number"
+                        name="weeksPerMonth"
+                        value={editFormData.weeksPerMonth}
+                        onChange={handleEditChange}
+                        required
+                        min="1"
+                        max="4"
+                      />
+                    </div>
+                    
+                    <fieldset className={styles.span2}>
+                      <legend>Specific Days Used:</legend>
+                      <div className={styles.daySelectorCheckboxes}>
+                        {daysOfWeek.map((day) => (
+                          <label key={day}>
+                            <input
+                              type="checkbox"
+                              name={day}
+                              checked={editFormData.specificDaysUsed[day]}
+                              onChange={handleEditChange}
+                            />
+                            {day.charAt(0).toUpperCase() + day.slice(1)}
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+
+                    <div className={`${styles.itemControls} ${styles.span2}`}>
+                      <button
+                        type="button"
+                        className={`${styles.formButton} ${styles.buttonDanger}`}
+                        onClick={handleCancelEdit}
+                      >
+                        Cancel
+                      </button>
+                      <button type="submit" className={styles.formButton}>
+                        Save Changes
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <div className={styles.itemHeader}>
+                      <h1>{appliance.name}</h1>
+                      <h6 className={styles.subtitle}>{appliance.type}</h6>
+                    </div>
+
+                    {appliance.imageUrl && (
+                      <div className={styles.itemImageWrapper}>
+                        <img src={appliance.imageUrl} alt={appliance.name} />
+                      </div>
+                    )}
+
+                    <div className={styles.statsGrid}>
+                      <div className={styles.statsItem}>
+                        <strong>Wattage:</strong> {appliance.wattage}W
+                      </div>
+                      <div className={styles.statsItem}>
+                        <strong>Usage:</strong> {appliance.hoursPerDay} hours/day
+                      </div>
+                      <div className={styles.statsItem}>
+                        <strong>Consumption:</strong> {appliance.kWhPerDay?.toFixed(2)} kWh/day
+                      </div>
+                      <div className={styles.statsItem}>
+                        <strong>Daily Cost:</strong> PHP {appliance.dailyCost?.toFixed(2)}
+                      </div>
+                      <div className={styles.statsItem}>
+                        <strong>Weekly Cost:</strong> PHP {appliance.weeklyCost?.toFixed(2)}
+                      </div>
+                      <div className={styles.statsItem}>
+                        <strong>Monthly Cost:</strong> PHP {appliance.monthlyCost?.toFixed(2)}
+                      </div>
+                    </div>
+
+                    {monitoringApplianceId === appliance.id && (
+                      <IoTMonitor
+                        appliance={appliance}
+                        applianceId={appliance.id}
+                        allAppliances={appliances}
+                      />
+                    )}
+
+                    <div className={styles.itemControls}>
+                      <button
+                        className={styles.formButton}
+                        onClick={() => handleToggleMonitor(appliance.id)}
+                      >
+                        {monitoringApplianceId === appliance.id ? "Hide Monitor" : "Monitor Device"}
+                      </button>
+                      <div className={styles.editRemoveGroup}>
+                        <button
+                          className={styles.formButton}
+                          onClick={() => handleEditAppliance(appliance)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className={`${styles.formButton} ${styles.buttonDanger}`}
+                          onClick={() => handleRemoveAppliance(appliance.id)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </>
                 )}
-
-                <div className={styles.statsGrid}>
-                  <div className={styles.statsItem}>
-                    <strong>Wattage:</strong> {appliance.wattage}W
-                  </div>
-                  <div className={styles.statsItem}>
-                    <strong>Usage:</strong> {appliance.hoursPerDay} hours/day
-                  </div>
-                  <div className={styles.statsItem}>
-                    <strong>Consumption:</strong> {appliance.kWhPerDay?.toFixed(2)} kWh/day
-                  </div>
-                  <div className={styles.statsItem}>
-                    <strong>Daily Cost:</strong> PHP {appliance.dailyCost?.toFixed(2)}
-                  </div>
-                  <div className={styles.statsItem}>
-                    <strong>Weekly Cost:</strong> PHP {appliance.weeklyCost?.toFixed(2)}
-                  </div>
-                  <div className={styles.statsItem}>
-                    <strong>Monthly Cost:</strong> PHP {appliance.monthlyCost?.toFixed(2)}
-                  </div>
-                </div>
-
-                <div className={styles.itemControls}>
-                  <button className={styles.formButton}>Monitor Device</button>
-                  <button
-                    className={`${styles.formButton} ${styles.buttonDanger}`}
-                    onClick={() => handleRemoveAppliance(appliance.id)}
-                  >
-                    Remove
-                  </button>
-                </div>
               </div>
             ))}
           </div>
@@ -298,11 +488,15 @@ function Inventory() {
           </div>
           <div className={styles.summaryItem}>
             <p>Est. Daily Bill</p>
-            <span>PHP {firestoreUser?.consumptionSummary?.estimatedDailyBill?.toFixed(2) ?? "0.00"}</span>
+            <span>
+              PHP {firestoreUser?.consumptionSummary?.estimatedDailyBill?.toFixed(2) ?? "0.00"}
+            </span>
           </div>
           <div className={styles.summaryItem}>
             <p>Est. Monthly Bill</p>
-            <span>PHP {firestoreUser?.consumptionSummary?.estimatedMonthlyBill?.toFixed(2) ?? "0.00"}</span>
+            <span>
+              PHP {firestoreUser?.consumptionSummary?.estimatedMonthlyBill?.toFixed(2) ?? "0.00"}
+            </span>
           </div>
           <div className={`${styles.summaryItem} ${styles.topAppliance}`}>
             <p>Top Appliance</p>
@@ -314,7 +508,8 @@ function Inventory() {
       <section className={styles.inventorySection}>
         <h2>Sharing Settings</h2>
         <p>
-          Current Setting: <strong>{firestoreUser?.consumptionSharingPrivacy ?? "Loading..."}</strong>
+          Current Setting:{" "}
+          <strong>{firestoreUser?.consumptionSharingPrivacy ?? "Loading..."}</strong>
         </p>
         <form className={styles.sharingForm} onSubmit={handlePrivacyUpdate}>
           <div className={styles.formGroup}>
@@ -341,7 +536,7 @@ function Inventory() {
 
       <section className={styles.inventorySection}>
         <h2>Add an Appliance</h2>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className={styles.addForm}>
           <div className={styles.formGroup}>
             <label htmlFor="name">Appliance Name</label>
             <input
@@ -387,6 +582,7 @@ function Inventory() {
               id="hoursPerDay"
               className={styles.formInput}
               type="number"
+              step="0.1"
               name="hoursPerDay"
               value={formData.hoursPerDay}
               onChange={handleChange}
@@ -411,7 +607,7 @@ function Inventory() {
               </button>
             </div>
             <div className={styles.daySelectorCheckboxes}>
-              {Object.keys(formData.specificDaysUsed).map((day) => (
+              {daysOfWeek.map((day) => (
                 <label key={day}>
                   <input
                     type="checkbox"
@@ -435,6 +631,8 @@ function Inventory() {
               value={formData.weeksPerMonth}
               onChange={handleChange}
               required
+              min="1"
+              max="4"
             />
           </div>
 
