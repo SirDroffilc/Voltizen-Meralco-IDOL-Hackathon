@@ -31,6 +31,13 @@ body {
   padding: 1.5rem;
 }
 
+.inventorySection {
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 h1,
 h2,
 h3 {
@@ -147,9 +154,11 @@ p {
   color: var(--tertiary-500);
 }
 
-form {
+.addForm {
   display: grid;
-  gap: 1.25rem;
+  width: 100%;
+  grid-template-columns: 1fr;
+  gap: 1rem 1.25rem;
 }
 
 .sharingForm {
@@ -202,6 +211,10 @@ fieldset legend {
   gap: 0.5rem;
 }
 
+.span2 {
+  grid-column: 1 / -1;
+}
+
 .formGroup.span2,
 fieldset.span2,
 .formButton.span2 {
@@ -211,6 +224,7 @@ fieldset.span2,
 .formInput,
 .formSelect {
   width: 100%;
+  box-sizing: border-box;
   padding: 0.75rem;
   font-family: "Montserrat", sans-serif;
   font-size: 1rem;
@@ -267,12 +281,12 @@ fieldset.span2,
 }
 
 @media (min-width: 768px) {
-  form {
-    grid-template-columns: repeat(3, 1fr);
+  .addForm {
+    grid-template-columns: repeat(auto-fit, minmax(70vw, 1fr));
     gap: 1.25rem 2rem;
   }
   .applianceItem {
-    grid-template-columns: 1fr 250px;
+    grid-template-columns: 1fr 30%;
     grid-template-areas:
       "header image"
       "stats stats"
@@ -308,6 +322,10 @@ fieldset.span2,
 .editRemoveGroup {
   display: flex;
   gap: 0.5rem;
+}
+
+.justifyEnd {
+  justify-content: flex-end;
 }
 
 .monitorContainer,

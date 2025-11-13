@@ -374,7 +374,7 @@ function Inventory() {
                         max="4"
                       />
                     </div>
-                    
+
                     <fieldset className={styles.span2}>
                       <legend>Specific Days Used:</legend>
                       <div className={styles.daySelectorCheckboxes}>
@@ -392,17 +392,19 @@ function Inventory() {
                       </div>
                     </fieldset>
 
-                    <div className={`${styles.itemControls} ${styles.span2}`}>
-                      <button
-                        type="button"
-                        className={`${styles.formButton} ${styles.buttonDanger}`}
-                        onClick={handleCancelEdit}
-                      >
-                        Cancel
-                      </button>
-                      <button type="submit" className={styles.formButton}>
-                        Save Changes
-                      </button>
+                    <div className={`${styles.itemControls} ${styles.span2} ${styles.justifyEnd}`}>
+                      <div className={styles.editRemoveGroup}>
+                        <button
+                          type="button"
+                          className={`${styles.formButton} ${styles.buttonDanger}`}
+                          onClick={handleCancelEdit}
+                        >
+                          Cancel
+                        </button>
+                        <button type="submit" className={styles.formButton}>
+                          Save Changes
+                        </button>
+                      </div>
                     </div>
                   </form>
                 ) : (
