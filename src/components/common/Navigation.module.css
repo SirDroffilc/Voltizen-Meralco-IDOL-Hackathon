@@ -9,6 +9,12 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
+.logo{
+    width: 25px;
+    height: 25px;
+    object-fit: contain;
+}
+
 .logoContainer{
     display: flex;
     align-items: center;

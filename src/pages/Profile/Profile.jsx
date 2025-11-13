@@ -68,13 +68,11 @@ function Profile() {
     try {
       await updateLocationSharingPrivacy(user.uid, locationPrivacy);
       setLocationUpdateStatus({ success: true, message: "Location sharing updated." });
-      // close the settings dialog after a short delay so the user can see the success state
       setTimeout(() => setIsSettingsDialogOpen(false), 300);
     } catch (err) {
       console.error(err);
       setLocationUpdateStatus({ success: false, message: err?.message || "Failed to update." });
     }
-    // clear status after a short delay
     setTimeout(() => setLocationUpdateStatus(null), 3000);
   };
   
@@ -94,7 +92,8 @@ function Profile() {
           <p>Consumption Sharing Privacy: {firestoreUser.consumptionSharingPrivacy}</p>
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             <button className={styles.signoutBtn} onClick={signOut}>Sign Out</button>
-            <button className={styles.signoutBtn} onClick={() => setIsSettingsDialogOpen(true)}>Location Sharing</button>
+            <button className={styles.localSharingBtn} onClick={() => setIsSettingsDialogOpen(true)}>Location Sharing</button>
+            <button className={styles.signoutBtn} onClick={() => setIsSettingsDialogOpen(true)}>Change Location</button>
           </div>
         </div>
       </div>

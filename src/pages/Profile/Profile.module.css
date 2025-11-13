@@ -23,7 +23,6 @@
 }
 
 
-.profileImage,
 .userInfo .profileImage {
     width: 140px;
     height: 140px;
@@ -44,6 +43,7 @@
     margin: 2px 0;
     color: var(--sidebar-text-muted, #6b7280);
     font-size: 0.95rem;
+    font-family: 'Montserrat';
 }
 
 .consumptionInfo {
@@ -81,6 +81,7 @@
     background: hsla(0, 0%, 100%, 0.03);
 }
 
+.localSharingBtn,
 .signoutBtn{
     margin-top: 10px;
     padding: 10px 16px;
@@ -89,9 +90,14 @@
     border: none;
     border-radius: 10px;
     cursor: pointer;
-    font-size: 0.98rem;
+    font-size: rem;
     transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
     box-shadow: 0 4px 12px rgba(16,24,40,0.06);
+}
+
+.localSharingBtn{
+    background-color: var(--tertiary-500);
+    color: var(--white);
 }
 
 .signoutBtn:hover {
