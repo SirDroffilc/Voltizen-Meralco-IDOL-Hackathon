@@ -1,4 +1,5 @@
 import { listenToUserInventory, addApplianceToInventory, removeApplianceFromInventory, updateApplianceInInventory, getApplianceImageURL } from "../firebaseServices/database/inventoryFunctions";
+import { updateConsumptionSharingPrivacy } from "../firebaseServices/database/usersFunctions";
 import useAuth from "../firebaseServices/auth/useAuth";
 import IoTMonitor from "../components/inventory/IoTMonitor";
 import { doc, getDoc } from "firebase/firestore";
@@ -30,6 +31,7 @@ function Inventory() {
   });
   const [editingApplianceId, setEditingApplianceId] = useState(null);
   const [editFormData, setEditFormData] = useState(null);
+  const [privacySetting, setPrivacySetting] = useState("");
 
   const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
@@ -204,6 +206,22 @@ function Inventory() {
     } catch (error) {
       console.error("Error updating appliance:", error);
       alert("Failed to update appliance. Please try again.");
+    }
+  };
+
+  const handlePrivacyUpdate = async (e) => {
+    e.preventDefault();
+
+    if (!privacySetting) {
+      alert("Please select a privacy setting.");
+      return;
+    }
+
+    try {
+      const result = await updateConsumptionSharingPrivacy(user.uid, privacySetting);
+    } catch (error) {
+      console.error("Error updating privacy setting:", error);
+      alert("Failed to update privacy setting. Please try again.");
     }
   };
 
