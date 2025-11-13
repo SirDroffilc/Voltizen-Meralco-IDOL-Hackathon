@@ -63,7 +63,7 @@ function Profile() {
           <li>Estimated Monthly Bill: {firestoreUser.consumptionSummary.estimatedMonthlyBill}</li>
           <li>Top Appliance (by Consumption Cost): {firestoreUser.consumptionSummary.topAppliance}</li>
         </ul>
-        <p>Last Report Time: {formatTimestamp(firestoreUser.lastReportTime)}</p>
+        <p className={styles.lastReportTime}>Last Report Time: {formatTimestamp(firestoreUser.lastReportTime)}</p>
       </div>
     </div>
   );
