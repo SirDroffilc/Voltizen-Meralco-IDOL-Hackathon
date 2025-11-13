@@ -52,13 +52,11 @@ function Profile() {
           {firestoreUser.location ? (
             <p>Location: GeoPoint({firestoreUser.location?.latitude}, {firestoreUser.location?.longitude})</p>
           ) : <p>Location: No location indicated</p>}
+          <p>Consumption Sharing Privacy: {firestoreUser.consumptionSharingPrivacy}</p>
         </div>
-        
-        
       </div>
       
       <div className={styles.consumptionInfo}>
-        <p>Consumption Sharing Privacy: {firestoreUser.consumptionSharingPrivacy}</p>
         <p>Consumption Summary</p>
         <ul>
           <li>Appliance Count: {firestoreUser.consumptionSummary.applianceCount}</li>
