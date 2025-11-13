@@ -2,7 +2,7 @@ import useAuth from "../../firebaseServices/auth/useAuth";
 import styles from './Profile.module.css';
 
 function Profile() {
-  const { firestoreUser, firestoreLoading } = useAuth();
+  const { firestoreUser, firestoreLoading, signOut } = useAuth();
   
   if (firestoreLoading) {
     return <div>Loading...</div>;
@@ -53,6 +53,7 @@ function Profile() {
             <p>Location: GeoPoint({firestoreUser.location?.latitude}, {firestoreUser.location?.longitude})</p>
           ) : <p>Location: No location indicated</p>}
           <p>Consumption Sharing Privacy: {firestoreUser.consumptionSharingPrivacy}</p>
+          <button className={styles.signoutBtn} onClick={signOut}>Sign Out</button>
         </div>
       </div>
       
