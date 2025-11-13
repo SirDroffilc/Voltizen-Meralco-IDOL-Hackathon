@@ -529,6 +529,7 @@ export async function addDummyUserWithInventory(name) {
       pendingRequestsOut: {},
       profileImageUrl,
       userRole: 'regular',
+      locationSharingPrivacy: 'public',
     });
 
     const laptopUrl = "https://res.cloudinary.com/ddr9shttr/image/upload/v1762953510/laptop_vlww85.jpg";
@@ -589,6 +590,42 @@ export async function updateConsumptionSharingPrivacy(userId, newSetting) {
     };
   } catch (error) {
     console.error("Error updating consumptionSharingPrivacy:", error);
+    throw error;
+  }
+}
+
+/**
+ * Updates the `locationSharingPrivacy` field in a user's document.
+ *
+ * @param {string} userId - The UID of the user whose privacy setting is to be updated.
+ * @param {string} newSetting - The new privacy setting. Possible values: "private", "connectionsOnly", "public".
+ * @returns {Promise<object>} - A promise that resolves to an object containing:
+ *   - `success` (boolean): Indicates if the operation was successful.
+ *   - `message` (string): A message confirming the update.
+ * @throws {Error} - Throws an error if the userId or newSetting is invalid, or if the update fails.
+ */
+export async function updateLocationSharingPrivacy(userId, newSetting) {
+  if (!userId || !newSetting) {
+    throw new Error("Both userId and newSetting are required.");
+  }
+
+  const validSettings = ["private", "connectionsOnly", "public"];
+  if (!validSettings.includes(newSetting)) {
+    throw new Error(`Invalid privacy setting: ${newSetting}. Valid options are: ${validSettings.join(", ")}`);
+  }
+
+  try {
+    const userDocRef = doc(db, "users", userId);
+    await updateDoc(userDocRef, {
+      locationSharingPrivacy: newSetting,
+    });
+
+    return {
+      success: true,
+      message: `Privacy setting updated to '${newSetting}' for user ${userId}.`,
+    };
+  } catch (error) {
+    console.error("Error updating locationSharingPrivacy:", error);
     throw error;
   }
 }

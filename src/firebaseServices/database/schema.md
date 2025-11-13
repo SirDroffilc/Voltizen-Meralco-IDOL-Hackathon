@@ -31,22 +31,27 @@
     - **Type**: `geopoint`
     - **Description**: The user's geographical location, represented as latitude and longitude.
 
-6. **`connections`**
+6. **`locationSharingPrivacy`**
+
+    - **Type**: `string`
+    - **Description**: The privacy setting for sharing location. Possible values include `"private"`, `"connectionsOnly"`, and `"public"`.
+
+7. **`connections`**
 
     - **Type**: `map`
     - **Description**: A map of user IDs representing the user's connections. Each key is a `userID` and the value is a `boolean` indicating the connection status.
 
-7. **`pendingRequestsIn`**
+8. **`pendingRequestsIn`**
 
     - **Type**: `map`
     - **Description**: A map of incoming connection requests. Each key is a `userID` and the value is a `boolean` indicating the request status.
 
-8. **`pendingRequestsOut`**
+9. **`pendingRequestsOut`**
 
     - **Type**: `map`
     - **Description**: A map of outgoing connection requests. Each key is a `userID` and the value is a `boolean` indicating the request status.
 
-9. **`consumptionSummary`**
+10. **`consumptionSummary`**
 
     - **Type**: `map`
     - **Description**: A map summarizing the user's electricity consumption data. This is primary data used by other summaries and privacy settings. Contains:
@@ -57,27 +62,27 @@
         - **`estimatedWeeklyBill`**: `number`
         - **`estimatedMonthlyBill`**: `number`
 
-10. **`consumptionSharingPrivacy`**
+11. **`consumptionSharingPrivacy`**
 
     - **Type**: `string`
     - **Description**: The privacy setting for sharing consumption data. Possible values include `"private"`, `"connectionsOnly"`, and `"public"`.
 
-11. **`actualMonthlyBill`**
+12. **`actualMonthlyBill`**
 
     - **Type**: `number`
     - **Description**: The user's actual monthly electricity bill.
 
-12. **`credibilityScore`**
+13. **`credibilityScore`**
 
     - **Type**: `number`
     - **Description**: A score representing the user's credibility within the app.
 
-13. **`lastReportTime`**
+14. **`lastReportTime`**
 
     - **Type**: `timestamp`
     - **Description**: The timestamp of the user's last report submission.
 
-14. **`inventory`**
+15. **`inventory`**
 
     - **Type**: `subcollection`
     - **Description**: The user's inventory of appliances. Each document in this subcollection represents a single appliance (document ID: `applianceId`).
@@ -146,7 +151,7 @@
 
     13. **`imageUrl`**
 
-        - **Type**: `string`
+        - **Type**: `string`    
         - **Description**: The image URL (Cloudinary) for the appliance.
 
 ### `reports` Collection: Document Schema
