@@ -7,6 +7,7 @@
   overflow: hidden;
   font-family: "Open Sans", sans-serif;
   background-color: var(--map-bg);
+  position: relative;
 }
 
 .info-sidebar {
@@ -22,6 +23,8 @@
   flex-direction: column;
   justify-content: flex-start;
   z-index: 1001;
+  transition: transform 0.3s ease-in-out;
+  flex-shrink: 0;
 }
 
 .map-content {
@@ -29,6 +32,25 @@
   height: 100%;
   background-color: var(--map-bg);
   position: relative;
+  overflow: hidden;
+}
+
+.sidebar-toggle-button {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--tertiary-900);
 }
 
 .sidebar-content-wrapper {
@@ -98,6 +120,7 @@
   border-bottom-style: solid;
   line-height: 1.4;
   padding-bottom: 12px;
+  word-break: break-word;
 }
 
 .marker-data-display h1.header-report {
@@ -196,6 +219,8 @@
   font-size: 1rem;
   line-height: 1.7;
   color: var(--sidebar-text-emphasis);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .marker-data-display p strong {
@@ -759,6 +784,18 @@
   font-weight: 400;
 }
 
+.draw-area-group .draw-area-controls {
+  display: flex;
+  gap: 10px;
+}
+.draw-area-group .point-input {
+  width: 80px;
+  padding: 10px;
+}
+.draw-area-group .button-secondary {
+  flex: 1;
+}
+
 .button-primary {
   padding: 10px 16px;
   border: none;
@@ -798,4 +835,48 @@
   background-color: var(--grey-100);
   color: var(--grey-400);
   cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .info-sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 320px;
+    transform: translateX(-100%);
+    z-index: 2000;
+  }
+  .info-sidebar.open {
+    transform: translateX(0);
+  }
+  .sidebar-toggle-button {
+    display: flex;
+  }
+  .controls-bottom-right {
+    bottom: 10px;
+    right: 10px;
+    gap: 8px;
+  }
+  .map-button-circle {
+    width: 44px;
+    height: 44px;
+  }
+  .control-group {
+    padding: 6px;
+    gap: 6px;
+  }
+  .expandable-menu.menu-open .menu-toggle-button {
+    margin-left: 6px;
+  }
+
+  .drawing-controls {
+    width: 90%;
+    box-sizing: border-box;
+  }
+
+  .drawing-buttons {
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+  }
 }
