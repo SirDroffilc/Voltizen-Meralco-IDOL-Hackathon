@@ -8,7 +8,7 @@ import Login from "./pages/Login";
 import TestPage from './pages/TestPage';
 import Connections from './pages/Connection/Connections.jsx';
 import MapPage from './pages/MapPage';
-import ConnectionInventory from './pages/ConnectionInventory';
+import ConnectionInventory from './pages/ConnectionInventory/ConnectionInventory.jsx';
 import Inventory from './pages/Inventory';
 
 import ProtectedRoute from './components/auth/ProtectedRoute';

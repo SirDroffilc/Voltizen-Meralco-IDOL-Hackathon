@@ -1,8 +1,9 @@
 import { useParams } from "react-router-dom";
-import useAuth from "../firebaseServices/auth/useAuth"; // Assumes this provides { user }
-import { getUserByUid } from "../firebaseServices/database/usersFunctions";
-import { listenToUserInventory, calculateConsumptionSummary } from "../firebaseServices/database/inventoryFunctions";
+import useAuth from "../../firebaseServices/auth/useAuth"; // Assumes this provides { user }
+import { getUserByUid } from "../../firebaseServices/database/usersFunctions";
+import { listenToUserInventory, calculateConsumptionSummary } from "../../firebaseServices/database/inventoryFunctions";
 import { useEffect, useState } from "react";
+import styles from './ConnectionInventory.module.css';
 
 function ConnectionInventory() {
   const { connectionId } = useParams();
@@ -108,7 +109,7 @@ function ConnectionInventory() {
   }
 
   return (
-    <div>
+    <div className={styles.ConnectionInventoryContainer}>
       <h1>
         {connectionUser
           ? `${connectionUser.displayName}'s Inventory`
