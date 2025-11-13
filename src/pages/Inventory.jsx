@@ -1,6 +1,7 @@
-import { listenToUserInventory, addApplianceToInventory, removeApplianceFromInventory, getApplianceImageURL } from "../firebaseServices/database/inventoryFunctions";
-import { updateConsumptionSharingPrivacy } from "../firebaseServices/database/usersFunctions";
+import { listenToUserInventory, addApplianceToInventory, removeApplianceFromInventory, updateApplianceInInventory, getApplianceImageURL } from "../firebaseServices/database/inventoryFunctions";
 import useAuth from "../firebaseServices/auth/useAuth";
+import IoTMonitor from "../components/inventory/IoTMonitor";
+import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import styles from "./Inventory.module.css";
 
@@ -27,7 +28,10 @@ function Inventory() {
     addedBy: "manual",
     imageFile: null,
   });
-  const [privacySetting, setPrivacySetting] = useState(firestoreUser?.consumptionSharingPrivacy || "");
+  const [editingApplianceId, setEditingApplianceId] = useState(null);
+  const [editFormData, setEditFormData] = useState(null);
+
+  const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
   useEffect(() => {
     if (firestoreUser?.consumptionSharingPrivacy) {
@@ -80,51 +84,21 @@ function Inventory() {
     }
   };
 
-  const setSpecificDays = (daysToSet) => {
-    setFormData((prevData) => ({
-      ...prevData,
-      specificDaysUsed: daysToSet,
-    }));
-  };
-
-  const handleDaySelection = (type) => {
-    const allDays = { ...formData.specificDaysUsed };
-    const allDaysFalse = {
-      monday: false,
-      tuesday: false,
-      wednesday: false,
-      thursday: false,
-      friday: false,
-      saturday: false,
-      sunday: false,
-    };
-
-    switch (type) {
-      case "all":
-        setSpecificDays(Object.keys(allDays).reduce((acc, day) => ({ ...acc, [day]: true }), {}));
-        break;
-      case "none":
-        setSpecificDays(allDaysFalse);
-        break;
-      case "weekdays":
-        setSpecificDays({
-          ...allDaysFalse,
-          monday: true,
-          tuesday: true,
-          wednesday: true,
-          thursday: true,
-          friday: true,
-        });
-        break;
-      case "weekends":
-        setSpecificDays({
-          ...allDaysFalse,
-          saturday: true,
-          sunday: true,
-        });
-        break;
-      default:
-        break;
+  const handleEditChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    if (type === "checkbox") {
+      setEditFormData((prevData) => ({
+        ...prevData,
+        specificDaysUsed: {
+          ...prevData.specificDaysUsed,
+          [name]: checked,
+        },
+      }));
+    } else {
+      setEditFormData((prevData) => ({
+        ...prevData,
+        [name]: value,
+      }));
     }
   };
 
@@ -174,9 +148,8 @@ function Inventory() {
   };
 
   const handleRemoveAppliance = async (applianceId) => {
-    if (!window.confirm("Are you sure you want to remove this appliance?")) {
-      return;
-    }
+    if (!window.confirm("Are you sure you want to remove this appliance?")) return;
+
     try {
       const result = await removeApplianceFromInventory(user.uid, applianceId);
       if (result.success) {
@@ -188,15 +161,49 @@ function Inventory() {
     }
   };
 
-  const handlePrivacyUpdate = async (e) => {
+  const handleEditAppliance = (appliance) => {
+    setEditingApplianceId(appliance.id);
+    setEditFormData({
+      name: appliance.name,
+      type: appliance.type,
+      wattage: appliance.wattage,
+      hoursPerDay: appliance.hoursPerDay,
+      specificDaysUsed: appliance.specificDaysUsed || {
+        monday: false,
+        tuesday: false,
+        wednesday: false,
+        thursday: false,
+        friday: false,
+        saturday: false,
+        sunday: false,
+      },
+      weeksPerMonth: appliance.weeksPerMonth,
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingApplianceId(null);
+    setEditFormData(null);
+  };
+
+  const handleUpdateAppliance = async (e) => {
     e.preventDefault();
 
     try {
-      await updateConsumptionSharingPrivacy(user.uid, privacySetting);
-      alert("Privacy setting updated!");
+      const updateData = {
+        ...editFormData,
+        wattage: parseFloat(editFormData.wattage),
+        hoursPerDay: parseFloat(editFormData.hoursPerDay),
+        weeksPerMonth: parseInt(editFormData.weeksPerMonth, 10),
+      };
+
+      await updateApplianceInInventory(user.uid, editingApplianceId, updateData);
+      
+      setEditingApplianceId(null);
+      setEditFormData(null);
     } catch (error) {
-      console.error("Error updating privacy setting:", error);
-      alert("Failed to update privacy setting. Please try again.");
+      console.error("Error updating appliance:", error);
+      alert("Failed to update appliance. Please try again.");
     }
   };
 
