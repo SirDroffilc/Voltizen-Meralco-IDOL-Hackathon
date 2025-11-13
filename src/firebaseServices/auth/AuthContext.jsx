@@ -103,7 +103,7 @@ export function AuthProvider({ children }) {
 						displayName: u.displayName || 'Anonymous',
 						email: u.email,
 						lastReportTime: null,
-						location,
+						location, // Now a GeoPoint object
 						pendingRequestsIn: {},
 						pendingRequestsOut: {},
 						profileImageUrl,
