@@ -10,6 +10,7 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { GeoPoint } from "firebase/firestore";
+import ReactDOMServer from "react-dom/server";
 
 import MarkerClusterGroup from "react-leaflet-markercluster";
 import "leaflet.markercluster/dist/MarkerCluster.css";
@@ -38,6 +39,8 @@ import {
   Check,
   XCircle,
   Edit,
+  House,
+  Award,
 } from "lucide-react";
 
 import {
@@ -60,10 +63,24 @@ import {
   updateReportApprovalStatus,
   getReportImageURL,
 } from "../firebaseServices/database/reportsFunctions";
+import { listenToUserConnections } from "../firebaseServices/database/usersFunctions";
 
 import useAuth from "../firebaseServices/auth/useAuth";
 
 delete L.Icon.Default.prototype._getIconUrl;
+
+const createLucideIcon = (IconComponent, color) => {
+  const iconHtml = ReactDOMServer.renderToString(
+    <IconComponent color={color} size={32} strokeWidth={2} />
+  );
+
+  return new L.DivIcon({
+    html: `<div class="leaflet-lucide-icon-wrapper">${iconHtml}</div>`,
+    className: "leaflet-lucide-icon",
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+  });
+};
 
 const createIcon = (color) => {
   const markerHtml = `<svg viewBox="0 0 32 32" class="marker-svg" style="fill:${color};"><path d="M16 0C10.486 0 6 4.486 6 10c0 5.515 10 22 10 22s10-16.485 10-22C26 4.486 21.514 0 16 0zm0 15c-2.761 0-5-2.239-5-5s2.239-5 5-5 5 2.239 5 5-2.239 5-5 5z"/></svg>`;
@@ -79,6 +96,7 @@ const icons = {
   report: createIcon("#d81916"),
   hazard: createIcon("#13dca3"),
   announcement: createIcon("#faca46"),
+  connection: createLucideIcon(House, "#3b82f6"),
 };
 
 const mapLayers = {
@@ -154,6 +172,7 @@ const getModeLabel = (mode) =>
     report: "User Report",
     hazard: "Outage/Hazard",
     announcement: "Announcement",
+    connection: "Connection's Location",
   }[mode] || "None");
 
 const initialFormData = {
@@ -204,6 +223,9 @@ function MarkerDetailsPanel({
     isPlanned,
     startTime,
     endTime,
+    displayName,
+    credibilityScore,
+    profileImageUrl,
   } = marker;
 
   const headerClass =
@@ -211,6 +233,7 @@ function MarkerDetailsPanel({
       report: "header-report",
       hazard: "header-hazard",
       announcement: "header-announcement",
+      connection: "header-connection",
     }[type] || "";
 
   const finalImageUrl = imageURL || imageUrl;
@@ -235,7 +258,24 @@ function MarkerDetailsPanel({
 
   return (
     <div className="marker-data-display">
-      <h1 className={headerClass}>{title || getModeLabel(type)}</h1>
+      <h1 className={headerClass}>{title || displayName || getModeLabel(type)}</h1>
+
+      {type === "connection" && (
+        <div className="connection-details">
+          <img
+            src={profileImageUrl}
+            alt={displayName}
+            className="connection-pfp"
+          />
+          <div className="connection-info">
+            <span className="connection-name">{displayName}</span>
+            <span className="connection-score">
+              <Award size={16} />
+              {credibilityScore || 0} Credibility
+            </span>
+          </div>
+        </div>
+      )}
 
       {finalImageUrl && (
         <div className="marker-image-wrapper">
@@ -243,56 +283,60 @@ function MarkerDetailsPanel({
         </div>
       )}
 
-      <div className="details">
-        <h4>Details</h4>
-        <p className="detail-description">
-          {description || "No description provided."}
-        </p>
-        {type === "hazard" && (
-          <p>
-            <strong>Type:</strong>{" "}
-            <span
-              className={
-                isPlanned ? "planned-outage" : "unplanned-outage"
-              }
-            >
-              {isPlanned ? "Planned" : "Unplanned"}
-            </span>
+      {description && (
+        <div className="details">
+          <h4>Details</h4>
+          <p className="detail-description">
+            {description}
           </p>
-        )}
-        {(type === "announcement" || (type === "hazard" && isPlanned)) && (
-          <>
+          {type === "hazard" && (
             <p>
-              <strong>Starts:</strong> {formatTimestamp(startTime)}
+              <strong>Type:</strong>{" "}
+              <span
+                className={
+                  isPlanned ? "planned-outage" : "unplanned-outage"
+                }
+              >
+                {isPlanned ? "Planned" : "Unplanned"}
+              </span>
             </p>
-            <p>
-              <strong>Ends:</strong> {formatTimestamp(endTime)}
-            </p>
-          </>
-        )}
-      </div>
+          )}
+          {(type === "announcement" || (type === "hazard" && isPlanned)) && (
+            <>
+              <p>
+                <strong>Starts:</strong> {formatTimestamp(startTime)}
+              </p>
+              <p>
+                <strong>Ends:</strong> {formatTimestamp(endTime)}
+              </p>
+            </>
+          )}
+        </div>
+      )}
 
-      <div className="status">
-        {reporterName && (
-          <p>
-            <strong>Reporter:</strong> {reporterName}
-          </p>
-        )}
-        {responseStatus && (
-          <p>
-            <strong>Status:</strong>{" "}
-            <span className={`status-${responseStatus.replace(" ", "-")}`}>
-              {responseStatus}
-            </span>
-          </p>
-        )}
-        {approvalStatus && (
-          <p>
-            <strong>Approval:</strong>{" "}
-            <span className={`status-${approvalStatus}`}>{approvalStatus}</span>
-          </p>
-        )}
-      </div>
+      {type !== "connection" && (
+        <div className="status">
+          {reporterName && (
+            <p>
+              <strong>Reporter:</strong> {reporterName}
+            </p>
+          )}
+          {responseStatus && (
+            <p>
+              <strong>Status:</strong>{" "}
+              <span className={`status-${responseStatus.replace(" ", "-")}`}>
+                {responseStatus}
+              </span>
+            </p>
+          )}
+          {approvalStatus && (
+            <p>
+              <strong>Approval:</strong>{" "}
+              <span className={`status-${approvalStatus}`}>{approvalStatus}</span>
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="location">
         <h4>Location</h4>
@@ -304,7 +348,7 @@ function MarkerDetailsPanel({
         </p>
       </div>
 
-      {isAdmin && isPending && type !== "announcement" && (
+      {isAdmin && isPending && type !== "announcement" && type !== "connection" && (
         <div className="admin-approval-controls">
           <h4>Admin Action</h4>
           <div className="admin-buttons">
@@ -324,7 +368,7 @@ function MarkerDetailsPanel({
         </div>
       )}
 
-      {type !== "announcement" && (
+      {type !== "announcement" && type !== "connection" && (
         <div className="vote-controls-wrapper">
           <div className="vote-controls">
             <button
@@ -832,6 +876,7 @@ export default function MapPage() {
   const [reports, setReports] = useState([]);
   const [outages, setOutages] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
+  const [connections, setConnections] = useState([]);
 
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [markerMode, setMarkerMode] = useState("none");
@@ -859,7 +904,17 @@ export default function MapPage() {
           setAnnouncements,
           console.error
         );
-        listeners.push(unsubReports, unsubOutages, unsubAnnouncements);
+        const unsubConnections = listenToUserConnections(
+          user.uid,
+          setConnections,
+          console.error
+        );
+        listeners.push(
+          unsubReports,
+          unsubOutages,
+          unsubAnnouncements,
+          unsubConnections
+        );
       } catch (err) {
         console.error("Failed to set up listeners:", err);
       }
@@ -879,6 +934,11 @@ export default function MapPage() {
     );
     const visibleOutages = outages.filter(
       (o) => isAdmin || o.approvalStatus === "approved"
+    );
+    const visibleConnections = connections.filter(
+      (c) =>
+        c.locationSharingPrivacy === "public" ||
+        c.locationSharingPrivacy === "connectionsOnly"
     );
 
     const reportMarkers = visibleReports
@@ -911,12 +971,23 @@ export default function MapPage() {
         type: "announcement",
       }));
 
+    const connectionMarkers = visibleConnections
+      .filter((c) => c.location?.latitude && c.location?.longitude)
+      .map((c) => ({
+        ...c,
+        id: c.id,
+        pos: { lat: c.location.latitude, lng: c.location.longitude },
+        poly: [],
+        type: "connection",
+      }));
+
     return {
       report: reportMarkers,
       hazard: hazardMarkers,
       announcement: announcementMarkers,
+      connection: connectionMarkers,
     };
-  }, [reports, outages, announcements, isAdmin]);
+  }, [reports, outages, announcements, connections, isAdmin]);
 
   const showToast = (message) => {
     setToast({ isVisible: true, message });
@@ -1185,6 +1256,24 @@ export default function MapPage() {
             )}
           >
             {allMarkers.announcement.map((marker) => (
+              <Marker
+                key={marker.id}
+                position={marker.pos}
+                icon={icons[marker.type]}
+                eventHandlers={{
+                  click: () => handleMarkerClick(marker),
+                }}
+              />
+            ))}
+          </MarkerClusterGroup>
+
+          <MarkerClusterGroup
+            className="connection-cluster-group"
+            iconCreateFunction={createCustomClusterIcon(
+              "connection-cluster-group"
+            )}
+          >
+            {allMarkers.connection.map((marker) => (
               <Marker
                 key={marker.id}
                 position={marker.pos}
