@@ -8,6 +8,12 @@
     align-self: center;
 }
 
+.logo{
+    width: 25px;
+    height: 25px;
+    object-fit: contain;
+}
+
 .logoContainer{
     display: flex;
     align-items: center;

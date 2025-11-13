@@ -13,6 +13,7 @@ import { useEffect, useState, useMemo } from "react";
 import { ResponsivePie } from "@nivo/pie";
 import { Settings, Plus } from "lucide-react";
 import styles from "./Inventory.module.css";
+import applianceData from "../../appliances.json";
 
 function Inventory() {
   const { user, firestoreUser } = useAuth();
@@ -36,6 +37,7 @@ function Inventory() {
     weeksPerMonth: "",
     addedBy: "manual",
     imageFile: null,
+    defaultImageUrl: "",
   });
   const [editingApplianceId, setEditingApplianceId] = useState(null);
   const [editFormData, setEditFormData] = useState(null);
@@ -43,6 +45,14 @@ function Inventory() {
   const [monitoringApplianceId, setMonitoringApplianceId] = useState(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
+  const [showTypeDropdown, setShowTypeDropdown] = useState(false);
+
+  
+  const applianceTypes = useMemo(() => {
+    if (!applianceData) return [];
+    const types = applianceData.map(item => item.appliance_name);
+    return [...new Set(types)].sort();
+  }, []); 
 
   const daysOfWeek = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 
@@ -82,15 +92,45 @@ function Inventory() {
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
+
     if (type === "checkbox") {
       setFormData((prevData) => ({
         ...prevData,
         specificDaysUsed: { ...prevData.specificDaysUsed, [name]: checked },
       }));
     } else if (type === "file") {
-      setFormData((prevData) => ({ ...prevData, imageFile: files[0] }));
+      setFormData((prevData) => ({
+        ...prevData,
+        imageFile: files[0],
+      }));
     } else {
-      setFormData((prevData) => ({ ...prevData, [name]: value }));
+      if (name === "type") {
+        const selectedType = value;
+        const applianceDefaults = applianceData.find((app) => app.appliance_name === selectedType);
+
+        if (applianceDefaults) {
+          setFormData((prevData) => ({
+            ...prevData,
+            type: selectedType,
+            name: applianceDefaults.appliance_name || "",
+            wattage: applianceDefaults.wattage || "",
+            defaultImageUrl: applianceDefaults.url || "",
+          }));
+        } else {
+          setFormData((prevData) => ({
+            ...prevData,
+            type: selectedType,
+            name: "",
+            wattage: "",
+            defaultImageUrl: "",
+          }));
+        }
+      } else {
+        setFormData((prevData) => ({
+          ...prevData,
+          [name]: value,
+        }));
+      }
     }
   };
 
@@ -125,23 +165,33 @@ function Inventory() {
     e.preventDefault();
     try {
       const daysPerWeek = Object.values(formData.specificDaysUsed).filter(Boolean).length;
-      let imageUrl = "";
+      
+      let imageUrl = ""; 
+
       if (formData.imageFile) {
         imageUrl = await getApplianceImageURL(formData.imageFile);
+      } else if (formData.defaultImageUrl) {
+        imageUrl = formData.defaultImageUrl;
       }
-      const { imageFile, ...applianceData } = {
+
+      
+      const { imageFile, defaultImageUrl, ...applianceData } = {
         ...formData,
         wattage: parseFloat(formData.wattage),
         hoursPerDay: parseFloat(formData.hoursPerDay),
         weeksPerMonth: parseInt(formData.weeksPerMonth, 10),
         daysPerWeek,
-        imageUrl,
+        imageUrl, 
       };
+      
       await addApplianceToInventory(user.uid, applianceData);
+      
+     
       setFormData({
         name: "", type: "", wattage: "", hoursPerDay: "",
         specificDaysUsed: { monday: false, tuesday: false, wednesday: false, thursday: false, friday: false, saturday: false, sunday: false },
         weeksPerMonth: "", addedBy: "manual", imageFile: null,
+        defaultImageUrl: "" 
       });
       setIsAddDialogOpen(false);
     } catch (error) {
@@ -396,10 +446,64 @@ function Inventory() {
                 <label htmlFor="name">Appliance Name</label>
                 <input id="name" className={styles.formInput} type="text" name="name" value={formData.name} onChange={handleChange} required />
               </div>
-              <div className={styles.formGroup}>
-                <label htmlFor="type">Appliance Type (e.g., Fan, TV)</label>
-                <input id="type" className={styles.formInput} type="text" name="type" value={formData.type} onChange={handleChange} required />
+
+              <div className={styles.formGroup} style={{ position: "relative" }} onBlur={() => setTimeout(() => setShowTypeDropdown(false), 150)}>
+                <label htmlFor="type">Appliance Type</label>
+                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                  <input
+                    id="type"
+                    className={styles.formInput}
+                    name="type"
+                    value={formData.type}
+                    onChange={handleChange}
+                    placeholder="Type or pick an appliance"
+                    type="text"
+                    required
+                    autoComplete="off"
+                  />
+                  <button type="button" className={styles.formButton} onClick={() => setShowTypeDropdown((s) => !s)} aria-expanded={showTypeDropdown} aria-haspopup="listbox">
+                    ▾
+                  </button>
+                </div>
+
+                {showTypeDropdown && (
+                  <ul
+                    role="listbox"
+                    aria-label="Appliance types"
+                    style={{
+                      position: "absolute",
+                      left: 0,
+                      right: 0,
+                      marginTop: "0.5rem",
+                      background: "var(--sidebar-bg, #fff)",
+                      border: "1px solid var(--border-color, #ddd)",
+                      borderRadius: 6,
+                      maxHeight: 200,
+                      overflowY: "auto",
+                      zIndex: 40,
+                      padding: 0,
+                      listStyle: "none",
+                    }}
+                  >
+                    {applianceTypes.map((t) => (
+                      <li
+                        key={t}
+                        role="option"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handleChange({ target: { name: "type", value: t, type: "text" } });
+                          setShowTypeDropdown(false);
+                        }}
+                        style={{ padding: "0.5rem 0.75rem", cursor: "pointer" }}
+                      >
+                        {t}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
+              
+
               <div className={styles.formGroup}>
                 <label htmlFor="wattage">Wattage (W)</label>
                 <input id="wattage" className={styles.formInput} type="number" name="wattage" value={formData.wattage} onChange={handleChange} required />

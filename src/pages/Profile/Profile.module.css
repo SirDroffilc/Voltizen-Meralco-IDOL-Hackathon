@@ -23,7 +23,6 @@
 }
 
 
-.profileImage,
 .userInfo .profileImage {
     width: 140px;
     height: 140px;
@@ -44,6 +43,7 @@
     margin: 2px 0;
     color: var(--sidebar-text-muted, #6b7280);
     font-size: 0.95rem;
+    font-family: 'Montserrat';
 }
 
 .consumptionInfo {

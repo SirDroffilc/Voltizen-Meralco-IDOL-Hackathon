@@ -68,13 +68,11 @@ function Profile() {
     try {
       await updateLocationSharingPrivacy(user.uid, locationPrivacy);
       setLocationUpdateStatus({ success: true, message: "Location sharing updated." });
-      // close the settings dialog after a short delay so the user can see the success state
       setTimeout(() => setIsSettingsDialogOpen(false), 300);
     } catch (err) {
       console.error(err);
       setLocationUpdateStatus({ success: false, message: err?.message || "Failed to update." });
     }
-    // clear status after a short delay
     setTimeout(() => setLocationUpdateStatus(null), 3000);
   };
   
