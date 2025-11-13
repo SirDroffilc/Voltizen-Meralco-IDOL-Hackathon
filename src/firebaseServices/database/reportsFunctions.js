@@ -1,5 +1,7 @@
 import { db } from "../firebaseConfig";
-import { where, collection, orderBy, addDoc, doc, updateDoc, getDoc, GeoPoint, deleteField, onSnapshot, query, documentId, deleteDoc, getDocs, serverTimestamp } from "firebase/firestore";
+import { where, collection, orderBy, addDoc, doc, updateDoc, getDoc, GeoPoint, deleteField, onSnapshot, query, documentId, deleteDoc, getDocs, serverTimestamp, increment } from "firebase/firestore";
+
+import { incrementUserCredibilityScore, decrementUserCredibilityScore } from "./usersFunctions";
 
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const REPORT_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_REPORT_UPLOAD_PRESET;
@@ -62,6 +64,8 @@ export async function addReport(reportData) {
 			timeCreated: serverTimestamp(),
 			approvalStatus: approvalStatus || "pending",
 			responseStatus: responseStatus || "in progress",
+      upvoteCount: 0,
+      downvoteCount: 0,
 		};
 
 		const colRef = collection(db, "reports");
@@ -251,5 +255,79 @@ export async function getReportImageURL(imageFile) {
   } catch (err) {
     console.error("Image upload error:", err);
     return null;
+  }
+}
+
+/**
+ * Increments the upvote count for a specific report in the `reports` collection.
+ *
+ * - Updates the `upvoteCount` field in Firestore by incrementing it by 1.
+ * - Retrieves the `reporterId` from the report document and increments the user's credibility score.
+ *
+ * @param {string} reportId - The ID of the report to increment the upvote count for.
+ * @returns {Promise<void>} Resolves when the operation is successful.
+ * @throws {Error} If the `reportId` is invalid or the Firestore operation fails.
+ */
+export async function incrementReportUpvoteCount(reportId) {
+  if (!reportId) {
+    throw new Error("Report ID is required to increment upvote count.");
+  }
+
+  try {
+    const reportDocRef = doc(db, "reports", reportId);
+    await updateDoc(reportDocRef, {
+      upvoteCount: increment(1),
+    });
+
+    const reportDoc = await getDoc(reportDocRef);
+    const reporterId = reportDoc.data().reporterId;
+
+    if (reporterId) {
+      await incrementUserCredibilityScore(reporterId); // Await the function to ensure it completes
+    } else {
+      console.warn(`No reporterId found for report ${reportId}`);
+    }
+
+    console.log(`Upvote count incremented for report ${reportId}`);
+  } catch (error) {
+    console.error("Error incrementing upvote count:", error);
+    throw error;
+  }
+}
+
+/**
+ * Increments the downvote count for a specific report in the `reports` collection.
+ *
+ * - Updates the `downvoteCount` field in Firestore by incrementing it by 1.
+ * - Retrieves the `reporterId` from the report document and decrements the user's credibility score.
+ *
+ * @param {string} reportId - The ID of the report to increment the downvote count for.
+ * @returns {Promise<void>} Resolves when the operation is successful.
+ * @throws {Error} If the `reportId` is invalid or the Firestore operation fails.
+ */
+export async function incrementReportDownvoteCount(reportId) {
+  if (!reportId) {
+    throw new Error("Report ID is required to increment downvote count.");
+  }
+
+  try {
+    const reportDocRef = doc(db, "reports", reportId);
+    await updateDoc(reportDocRef, {
+      downvoteCount: increment(1), // Corrected field
+    });
+
+    const reportDoc = await getDoc(reportDocRef);
+    const reporterId = reportDoc.data().reporterId;
+
+    if (reporterId) {
+      await decrementUserCredibilityScore(reporterId); // Await the function to ensure it completes
+    } else {
+      console.warn(`No reporterId found for report ${reportId}`);
+    }
+
+    console.log(`Downvote count incremented for report ${reportId}`);
+  } catch (error) {
+    console.error("Error incrementing downvote count:", error);
+    throw error;
   }
 }
