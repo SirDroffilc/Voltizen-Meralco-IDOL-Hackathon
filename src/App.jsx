@@ -25,7 +25,7 @@ function App() {
         <Routes>
             <Route path="/" element={
               <ProtectedRoute>
-                <Home />
+                <MapPage />
               </ProtectedRoute>
             } />
 

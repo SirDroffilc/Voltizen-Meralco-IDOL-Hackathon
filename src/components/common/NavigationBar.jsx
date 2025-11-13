@@ -22,18 +22,14 @@ function NavigationBar() {
         {user && (
           <>
             <li className={styles.navItem}>
-              <NavLink to="/">Home</NavLink>
+              <NavLink to="/">Map</NavLink>
             </li>
             <li className={styles.navItem}>
               <NavLink to="/inventory">Inventory</NavLink>
             </li>
             <li className={styles.navItem}>
-              <NavLink to="/mappage">Map</NavLink>
-            </li>
-            <li className={styles.navItem}>
               <NavLink to="/profile">Profile</NavLink>
             </li>
-            
             <li className={styles.navItem}>
               <NavLink to="/connections">Connections</NavLink>
             </li>
@@ -45,9 +41,6 @@ function NavigationBar() {
             <NavLink to="/login">Log In</NavLink>
           </li>
         )}
-        <li className={styles.navItem}>
-          <NavLink to="/testpage">Testing Page</NavLink>
-        </li>
 
       </ul>
     </nav>
