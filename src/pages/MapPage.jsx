@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -30,82 +30,34 @@ import {
   Palette,
   Zap,
   CheckCircle2,
+  X,
+  ArrowUp,
+  ArrowDown,
+  Image as ImageIcon,
 } from "lucide-react";
 
-delete L.Icon.Default.prototype._getIconUrl;
+import {
+  addAnnouncement,
+  getAllAnnouncements,
+  getAnnouncementImageURL,
+} from "../firebaseServices/database/announcementsFunctions";
+import {
+  addOutage,
+  getAllOutages,
+  incrementOutageUpvoteCount,
+  incrementOutageDownvoteCount,
+} from "../firebaseServices/database/outagesFunctions";
+import {
+  addReport,
+  getAllReports,
+  incrementReportUpvoteCount,
+  incrementReportDownvoteCount,
+  getReportImageURL,
+} from "../firebaseServices/database/reportsFunctions";
 
-const initialMarkers = [
-  { id: "1", pos: { lat: 14.71719, lng: 120.90542 }, type: "report" },
-  { id: "2", pos: { lat: 14.71575, lng: 120.90683 }, type: "announcement" },
-  { id: "3", pos: { lat: 14.72964, lng: 120.92332 }, type: "hazard" },
-  { id: "4", pos: { lat: 14.72441, lng: 120.92713 }, type: "hazard" },
-  { id: "5", pos: { lat: 14.73313, lng: 120.92845 }, type: "announcement" },
-  { id: "6", pos: { lat: 14.73563, lng: 120.91901 }, type: "report" },
-  { id: "7", pos: { lat: 14.72097, lng: 120.92999 }, type: "report" },
-  { id: "8", pos: { lat: 14.71255, lng: 120.93589 }, type: "hazard" },
-  { id: "9", pos: { lat: 14.72091, lng: 120.94403 }, type: "announcement" },
-  { id: "10", pos: { lat: 14.71084, lng: 120.94349 }, type: "report" },
-  { id: "gen-1", pos: { lat: 14.75545, lng: 121.04108 }, type: "report" },
-  { id: "gen-2", pos: { lat: 14.71186, lng: 121.00693 }, type: "hazard" },
-  { id: "gen-3", pos: { lat: 14.73967, lng: 121.03126 }, type: "report" },
-  { id: "gen-4", pos: { lat: 14.73801, lng: 121.02058 }, type: "report" },
-  { id: "gen-5", pos: { lat: 14.77196, lng: 121.03681 }, type: "announcement" },
-  { id: "gen-6", pos: { lat: 14.72145, lng: 121.01859 }, type: "hazard" },
-  { id: "gen-7", pos: { lat: 14.73335, lng: 121.01772 }, type: "report" },
-  { id: "gen-8", pos: { lat: 14.75704, lng: 121.02026 }, type: "announcement" },
-  { id: "gen-9", pos: { lat: 14.72061, lng: 120.99221 }, type: "hazard" },
-  { id: "gen-10", pos: { lat: 14.72248, lng: 120.97022 }, type: "report" },
-  { id: "gen-11", pos: { lat: 14.71404, lng: 120.99971 }, type: "report" },
-  { id: "gen-12", pos: { lat: 14.70617, lng: 120.97545 }, type: "announcement" },
-  { id: "gen-13", pos: { lat: 14.77372, lng: 121.01855 }, type: "announcement" },
-  { id: "gen-14", pos: { lat: 14.70884, lng: 120.97059 }, type: "hazard" },
-  { id: "gen-15", pos: { lat: 14.69707, lng: 121.00414 }, type: "report" },
-  { id: "gen-16", pos: { lat: 14.72141, lng: 121.02534 }, type: "announcement" },
-  { id: "gen-17", pos: { lat: 14.76717, lng: 121.05432 }, type: "report" },
-  { id: "gen-18", pos: { lat: 14.73837, lng: 121.02462 }, type: "hazard" },
-  { id: "gen-19", pos: { lat: 14.75626, lng: 121.01168 }, type: "hazard" },
-  { id: "gen-20", pos: { lat: 14.74026, lng: 121.01287 }, type: "hazard" },
-  { id: "gen-21", pos: { lat: 14.72087, lng: 120.98501 }, type: "report" },
-  { id: "gen-22", pos: { lat: 14.71449, lng: 120.98402 }, type: "hazard" },
-  { id: "gen-23", pos: { lat: 14.7188, lng: 121.05318 }, type: "announcement" },
-  { id: "gen-24", pos: { lat: 14.70932, lng: 120.99395 }, type: "hazard" },
-  { id: "gen-25", pos: { lat: 14.7132, lng: 121.00259 }, type: "hazard" },
-  { id: "gen-26", pos: { lat: 14.74315, lng: 121.02237 }, type: "announcement" },
-  { id: "gen-27", pos: { lat: 14.72152, lng: 120.99908 }, type: "report" },
-  { id: "gen-28", pos: { lat: 14.77443, lng: 120.97864 }, type: "announcement" },
-  { id: "gen-29", pos: { lat: 14.7219, lng: 121.03608 }, type: "report" },
-  { id: "gen-30", pos: { lat: 14.75475, lng: 121.05282 }, type: "report" },
-  { id: "gen-31", pos: { lat: 14.7027, lng: 120.99127 }, type: "announcement" },
-  { id: "gen-32", pos: { lat: 14.71811, lng: 121.01358 }, type: "report" },
-  { id: "gen-33", pos: { lat: 14.73977, lng: 121.02872 }, type: "hazard" },
-  { id: "gen-34", pos: { lat: 14.72049, lng: 121.00032 }, type: "hazard" },
-  { id: "gen-35", pos: { lat: 14.7766, lng: 121.02562 }, type: "report" },
-  { id: "gen-36", pos: { lat: 14.75135, lng: 121.02324 }, type: "hazard" },
-  { id: "gen-37", pos: { lat: 14.71261, lng: 121.04318 }, type: "announcement" },
-  { id: "gen-38", pos: { lat: 14.74411, lng: 121.05602 }, type: "hazard" },
-  { id: "gen-39", pos: { lat: 14.72393, lng: 121.00683 }, type: "report" },
-  { id: "gen-40", pos: { lat: 14.73016, lng: 120.99341 }, type: "report" },
-  { id: "gen-41", pos: { lat: 14.74208, lng: 121.00332 }, type: "announcement" },
-  { id: "gen-42", pos: { lat: 14.76106, lng: 121.03936 }, type: "hazard" },
-  { id: "gen-43", pos: { lat: 14.767, lng: 121.04786 }, type: "report" },
-  { id: "gen-44", pos: { lat: 14.70341, lng: 121.04764 }, type: "hazard" },
-  { id: "gen-45", pos: { lat: 14.71262, lng: 121.05831 }, type: "announcement" },
-  { id: "gen-46", pos: { lat: 14.71221, lng: 120.99723 }, type: "hazard" },
-  { id: "gen-47", pos: { lat: 14.70365, lng: 120.98188 }, type: "report" },
-  { id: "gen-48", pos: { lat: 14.76451, lng: 120.9856 }, type: "announcement" },
-  { id: "gen-49", pos: { lat: 14.75419, lng: 121.0487 }, type: "hazard" },
-  { id: "gen-50", pos: { lat: 14.70425, lng: 121.03478 }, type: "report" },
-  { id: "gen-51", pos: { lat: 14.7454, lng: 121.03525 }, type: "announcement" },
-  { id: "gen-52", pos: { lat: 14.77708, lng: 120.9701 }, type: "announcement" },
-  { id: "gen-53", pos: { lat: 14.73646, lng: 120.97371 }, type: "announcement" },
-  { id: "gen-54", pos: { lat: 14.74104, lng: 120.97453 }, type: "report" },
-  { id: "gen-55", pos: { lat: 14.75783, lng: 121.01344 }, type: "announcement" },
-  { id: "gen-56", pos: { lat: 14.74316, lng: 121.05191 }, type: "hazard" },
-  { id: "gen-57", pos: { lat: 14.73718, lng: 121.03141 }, type: "report" },
-  { id: "gen-58", pos: { lat: 14.71181, lng: 121.02636 }, type: "report" },
-  { id: "gen-59", pos: { lat: 14.7247, lng: 121.00414 }, type: "announcement" },
-  { id: "gen-60", pos: { lat: 14.71539, lng: 121.03126 }, type: "hazard" },
-];
+import useAuth from "../firebaseServices/auth/useAuth";
+
+delete L.Icon.Default.prototype._getIconUrl;
 
 const createIcon = (color) => {
   const markerHtml = `<svg viewBox="0 0 32 32" class="marker-svg" style="fill:${color};"><path d="M16 0C10.486 0 6 4.486 6 10c0 5.515 10 22 10 22s10-16.485 10-22C26 4.486 21.514 0 16 0zm0 15c-2.761 0-5-2.239-5-5s2.239-5 5-5 5 2.239 5 5-2.239 5-5 5z"/></svg>`;
@@ -187,110 +139,730 @@ const createCustomClusterIcon = (className) => {
   };
 };
 
+const getModeLabel = (mode) =>
+  ({
+    report: "User Report",
+    hazard: "Outage/Hazard",
+    announcement: "Announcement",
+  }[mode] || "None");
+
+const initialFormData = {
+  title: "",
+  description: "",
+  imageFile: null,
+  isPlanned: false,
+  startTime: "",
+  endTime: "",
+};
+
+function DefaultSidebarPanel() {
+  return (
+    <div className="sidebar-default-content">
+      <div className="logo-header">
+        <Zap className="volt-logo" size={32} />
+        <h1 className="voltizen-title">Voltizen</h1>
+      </div>
+      <p>Uniting Community & Consumption.</p>
+      <p>Click a pin to see details or add your own report.</p>
+    </div>
+  );
+}
+
+function MarkerDetailsPanel({ marker, onUpvote, onDownvote }) {
+  const {
+    type,
+    title,
+    description,
+    reporterName,
+    responseStatus,
+    approvalStatus,
+    upvoteCount,
+    downvoteCount,
+    pos,
+    imageUrl,
+    imageURL,
+    isPlanned,
+    startTime,
+    endTime,
+  } = marker;
+
+  const headerClass =
+    {
+      report: "header-report",
+      hazard: "header-hazard",
+      announcement: "header-announcement",
+    }[type] || "";
+
+  const finalImageUrl = imageURL || imageUrl;
+
+  const formatTimestamp = (ts) => {
+    if (!ts) return "N/A";
+    let date;
+    if (ts.toDate) {
+      date = ts.toDate();
+    } else if (typeof ts === "string" || typeof ts === "number") {
+      date = new Date(ts);
+    } else {
+      return "Invalid Date";
+    }
+    return date.toLocaleString();
+  };
+
+  return (
+    <div className="marker-data-display">
+      <h1 className={headerClass}>{title || getModeLabel(type)}</h1>
+
+      {type !== "announcement" && (
+        <div className="vote-controls">
+          <button onClick={onUpvote} aria-label="Upvote">
+            <ArrowUp size={20} />
+          </button>
+          <span>{upvoteCount || 0}</span>
+          <button onClick={onDownvote} aria-label="Downvote">
+            <ArrowDown size={20} />
+          </button>
+          <span>{downvoteCount || 0}</span>
+        </div>
+      )}
+
+      {finalImageUrl && (
+        <div className="marker-image-wrapper">
+          <img src={finalImageUrl} alt={title || "Marker Image"} />
+        </div>
+      )}
+
+      <div className="details">
+        <h4>Details</h4>
+        <p>{description || "No description provided."}</p>
+        {type === "hazard" && (
+          <p>
+            <strong>Type:</strong> {isPlanned ? "Planned" : "Unplanned"}
+          </p>
+        )}
+        {(type === "announcement" || (type === "hazard" && isPlanned)) && (
+          <>
+            <p>
+              <strong>Starts:</strong> {formatTimestamp(startTime)}
+            </p>
+            <p>
+              <strong>Ends:</strong> {formatTimestamp(endTime)}
+            </p>
+          </>
+        )}
+      </div>
+
+      <div className="status">
+        {reporterName && (
+          <p>
+            <strong>Reporter:</strong> {reporterName}
+          </p>
+        )}
+        {responseStatus && (
+          <p>
+            <strong>Status:</strong> {responseStatus}
+          </p>
+        )}
+        {approvalStatus && (
+          <p>
+            <strong>Approval:</strong> {approvalStatus}
+          </p>
+        )}
+      </div>
+
+      <div className="location">
+        <h4>Location</h4>
+        <p>
+          <strong>Latitude:</strong> {pos.lat.toFixed(5)}
+        </p>
+        <p>
+          <strong>Longitude:</strong> {pos.lng.toFixed(5)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function Sidebar({ selectedMarker, onUpvote, onDownvote }) {
+  return (
+    <aside className="info-sidebar">
+      <div className="sidebar-content-wrapper">
+        <div className="sidebar-section">
+          {selectedMarker ? (
+            <MarkerDetailsPanel
+              marker={selectedMarker}
+              onUpvote={onUpvote}
+              onDownvote={onDownvote}
+            />
+          ) : (
+            <DefaultSidebarPanel />
+          )}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function AddPinModal({ isOpen, onClose, onSubmit, markerInfo, currentUserRole }) {
+  const [formData, setFormData] = useState(initialFormData);
+  const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(initialFormData);
+    }
+  }, [isOpen]);
+
+  if (!isOpen || !markerInfo) return null;
+
+  const { type } = markerInfo;
+
+  const handleFormChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setFormData((prev) => ({
+        ...prev,
+        imageFile: e.target.files[0],
+      }));
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsUploading(true);
+
+    const { pos } = markerInfo;
+    const { title, description, isPlanned, startTime, endTime, imageFile } =
+      formData;
+
+    const location = { lat: pos.lat, lng: pos.lng };
+    let finalImageURL = null;
+
+    try {
+      if (imageFile) {
+        if (type === "report") {
+          finalImageURL = await getReportImageURL(imageFile);
+        } else if (type === "announcement") {
+          finalImageURL = await getAnnouncementImageURL(imageFile);
+        }
+      }
+
+      const payload = {
+        title,
+        description,
+        location,
+        imageURL: finalImageURL,
+        isPlanned: currentUserRole === "admin" ? isPlanned : false,
+        startTime: startTime || null,
+        endTime: endTime || null,
+      };
+
+      await onSubmit(type, payload);
+    } catch (error) {
+      console.error("Submission failed:", error);
+    } finally {
+      setIsUploading(false);
+      onClose();
+    }
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <form onSubmit={handleSubmit}>
+          <div className="modal-header">
+            <h3>Add {getModeLabel(type)}</h3>
+            <button
+              type="button"
+              onClick={onClose}
+              className="modal-close-button"
+              disabled={isUploading}
+            >
+              <X size={24} />
+            </button>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="title">Title</label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value={formData.title}
+              onChange={handleFormChange}
+              required
+              disabled={isUploading}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="description">Description</label>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleFormChange}
+              rows="4"
+              required
+              disabled={isUploading}
+            ></textarea>
+          </div>
+
+          {(type === "report" || type === "announcement") && (
+            <div className="form-group">
+              <label htmlFor="imageFile">Image (Optional)</label>
+              <input
+                type="file"
+                id="imageFile"
+                name="imageFile"
+                accept="image/*"
+                onChange={handleFileChange}
+                disabled={isUploading}
+              />
+            </div>
+          )}
+
+          {type === "hazard" && currentUserRole === "admin" && (
+            <div className="form-group-checkbox">
+              <input
+                type="checkbox"
+                id="isPlanned"
+                name="isPlanned"
+                checked={formData.isPlanned}
+                onChange={handleFormChange}
+                disabled={isUploading}
+              />
+              <label htmlFor="isPlanned">Is this a planned outage?</label>
+            </div>
+          )}
+
+          {(type === "announcement" ||
+            (type === "hazard" && formData.isPlanned)) && (
+            <>
+              <div className="form-group">
+                <label htmlFor="startTime">Start Time (Optional)</label>
+                <input
+                  type="datetime-local"
+                  id="startTime"
+                  name="startTime"
+                  value={formData.startTime}
+                  onChange={handleFormChange}
+                  disabled={isUploading}
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="endTime">End Time (Optional)</label>
+                <input
+                  type="datetime-local"
+                  id="endTime"
+                  name="endTime"
+                  value={formData.endTime}
+                  onChange={handleFormChange}
+                  disabled={isUploading}
+                />
+              </div>
+            </>
+          )}
+
+          <div className="modal-footer">
+            <button
+              type="button"
+              onClick={onClose}
+              className="button-secondary"
+              disabled={isUploading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="button-primary"
+              disabled={isUploading}
+            >
+              {isUploading ? "Submitting..." : "Submit"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function ZoomControls({ onZoomIn, onZoomOut }) {
+  return (
+    <div className="control-group zoom-controls">
+      <button
+        onClick={onZoomIn}
+        className="map-button-circle"
+        title="Zoom In"
+        aria-label="Zoom in"
+      >
+        <Plus size={24} />
+      </button>
+      <button
+        onClick={onZoomOut}
+        className="map-button-circle"
+        title="Zoom Out"
+        aria-label="Zoom out"
+      >
+        <Minus size={24} />
+      </button>
+    </div>
+  );
+}
+
+function PinMenu({ onSetMode, userRole }) {
+  const [isPinMenuOpen, setIsPinMenuOpen] = useState(false);
+
+  const handleSetMode = (mode) => {
+    onSetMode(mode);
+    setIsPinMenuOpen(false);
+  };
+
+  return (
+    <div
+      className={`control-group expandable-menu ${
+        isPinMenuOpen ? "menu-open" : ""
+      }`}
+    >
+      <div className="sub-buttons">
+        <button
+          className="map-button-circle mode-button report"
+          title="Add User Report"
+          aria-label="Add report pin"
+          onClick={() => handleSetMode("report")}
+        >
+          <Flag size={20} />
+        </button>
+        <button
+          className="map-button-circle mode-button hazard"
+          title="Add Outage/Hazard"
+          aria-label="Add outage/hazard pin"
+          onClick={() => handleSetMode("hazard")}
+        >
+          <TriangleAlert size={20} />
+        </button>
+        {userRole === "admin" && (
+          <button
+            className="map-button-circle mode-button announcement"
+            title="Add Announcement"
+            aria-label="Add announcement pin"
+            onClick={() => handleSetMode("announcement")}
+          >
+            <Megaphone size={20} />
+          </button>
+        )}
+      </div>
+      <button
+        className="map-button-circle menu-toggle-button toggle-pins"
+        title="Add Pin"
+        aria-label="Toggle pin menu"
+        onClick={() => setIsPinMenuOpen(!isPinMenuOpen)}
+      >
+        <Pin size={20} />
+      </button>
+    </div>
+  );
+}
+
+function LayerMenu({ onSetLayer }) {
+  const [isLayerMenuOpen, setIsLayerMenuOpen] = useState(false);
+
+  const handleSetLayer = (layer) => {
+    onSetLayer(layer);
+    setIsLayerMenuOpen(false);
+  };
+
+  return (
+    <div
+      className={`control-group expandable-menu ${
+        isLayerMenuOpen ? "menu-open" : ""
+      }`}
+    >
+      <div className="sub-buttons">
+        <button
+          className="map-button-circle layer-button"
+          title="Light Map"
+          aria-label="Light map"
+          onClick={() => handleSetLayer(mapLayers.light)}
+        >
+          <Sun size={20} />
+        </button>
+        <button
+          className="map-button-circle layer-button"
+          title="Street Map"
+          aria-label="Street map"
+          onClick={() => handleSetLayer(mapLayers.street)}
+        >
+          <MapIcon size={20} />
+        </button>
+        <button
+          className="map-button-circle layer-button"
+          title="B&W Map"
+          aria-label="B&W map"
+          onClick={() => handleSetLayer(mapLayers.toner)}
+        >
+          <Palette size={20} />
+        </button>
+        <button
+          className="map-button-circle layer-button"
+          title="Terrain Map"
+          aria-label="Terrain map"
+          onClick={() => handleSetLayer(mapLayers.terrain)}
+        >
+          <Mountain size={20} />
+        </button>
+        <button
+          className="map-button-circle layer-button"
+          title="Satellite Map"
+          aria-label="Satellite map"
+          onClick={() => handleSetLayer(mapLayers.satellite)}
+        >
+          <Satellite size={20} />
+        </button>
+        <button
+          className="map-button-circle layer-button"
+          title="Dark Map"
+          aria-label="Dark map"
+          onClick={() => handleSetLayer(mapLayers.dark)}
+        >
+          <Moon size={20} />
+        </button>
+      </div>
+      <button
+        className="map-button-circle menu-toggle-button toggle-layers"
+        title="Change Layer"
+        aria-label="Toggle layer menu"
+        onClick={() => setIsLayerMenuOpen(!isLayerMenuOpen)}
+      >
+        <Layers size={20} />
+      </button>
+    </div>
+  );
+}
+
+function MapControls({
+  markerMode,
+  onSetMode,
+  onZoomIn,
+  onZoomOut,
+  onSetLayer,
+  userRole,
+}) {
+  return (
+    <div className="controls-bottom-right">
+      {markerMode !== "none" && (
+        <div className="current-mode-notice">
+          Adding: <strong>{getModeLabel(markerMode)}</strong>
+          <button onClick={() => onSetMode("none")} aria-label="Cancel adding pin">
+            (Cancel)
+          </button>
+        </div>
+      )}
+
+      <ZoomControls onZoomIn={onZoomIn} onZoomOut={onZoomOut} />
+      <PinMenu onSetMode={onSetMode} userRole={userRole} />
+      <LayerMenu onSetLayer={onSetLayer} />
+    </div>
+  );
+}
+
+function Toast({ isVisible }) {
+  if (!isVisible) return null;
+  return (
+    <div className="pin-toast" aria-live="polite">
+      <CheckCircle2 size={18} /> Pin added
+    </div>
+  );
+}
+
 export default function MapPage() {
-  const [markers, setMarkers] = useState(initialMarkers);
+  const { user, firestoreUser } = useAuth();
+  const userRole = firestoreUser?.userRole || "regular";
+
+  const [reports, setReports] = useState([]);
+  const [outages, setOutages] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [markerMode, setMarkerMode] = useState("none");
   const [currentLayer, setCurrentLayer] = useState(mapLayers.light);
-  const [isPinMenuOpen, setIsPinMenuOpen] = useState(false);
-  const [isLayerMenuOpen, setIsLayerMenuOpen] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
-
   const [map, setMap] = useState(null);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newMarkerInfo, setNewMarkerInfo] = useState(null);
 
   const defaultCenter = [14.72026, 120.93051];
   const zoom = 15;
 
-  const reportMarkers = useMemo(
-    () => markers.filter((m) => m.type === "report"),
-    [markers]
-  );
-  const hazardMarkers = useMemo(
-    () => markers.filter((m) => m.type === "hazard"),
-    [markers]
-  );
-  const announcementMarkers = useMemo(
-    () => markers.filter((m) => m.type === "announcement"),
-    [markers]
-  );
+  useEffect(() => {
+    const listeners = [];
+
+    const setupListeners = async () => {
+      try {
+        const unsubReports = await getAllReports(setReports, console.error);
+        const unsubOutages = await getAllOutages(setOutages, console.error);
+        const unsubAnnouncements = await getAllAnnouncements(
+          setAnnouncements,
+          console.error
+        );
+        listeners.push(unsubReports, unsubOutages, unsubAnnouncements);
+      } catch (err) {
+        console.error("Failed to set up listeners:", err);
+      }
+    };
+
+    setupListeners();
+
+    return () => {
+      listeners.forEach((unsub) => unsub());
+    };
+  }, []);
+
+  const allMarkers = useMemo(() => {
+    const reportMarkers = reports
+      .filter((r) => r.location?.latitude && r.location?.longitude)
+      .map((r) => ({
+        ...r,
+        id: r.id,
+        pos: { lat: r.location.latitude, lng: r.location.longitude },
+        type: "report",
+      }));
+
+    const hazardMarkers = outages
+      .filter((o) => o.location?.latitude && o.location?.longitude)
+      .map((o) => ({
+        ...o,
+        id: o.id,
+        pos: { lat: o.location.latitude, lng: o.location.longitude },
+        type: "hazard",
+      }));
+
+    const announcementMarkers = announcements
+      .filter((a) => a.location?.latitude && a.location?.longitude)
+      .map((a) => ({
+        ...a,
+        id: a.id,
+        pos: { lat: a.location.latitude, lng: a.location.longitude },
+        type: "announcement",
+      }));
+
+    return {
+      report: reportMarkers,
+      hazard: hazardMarkers,
+      announcement: announcementMarkers,
+    };
+  }, [reports, outages, announcements]);
 
   const zoomIn = () => map && map.zoomIn();
   const zoomOut = () => map && map.zoomOut();
 
-  const handleAddMarker = (latlng) => {
-    const newMarker = { id: crypto.randomUUID(), pos: latlng, type: markerMode };
-    setMarkers((prev) => [...prev, newMarker]);
+  const handleSetMarkerMode = (mode) => {
+    setMarkerMode(mode);
+    setSelectedMarker(null);
+  };
+
+  const openAddMarkerModal = (latlng) => {
+    setNewMarkerInfo({ pos: latlng, type: markerMode });
+    setIsModalOpen(true);
     setMarkerMode("none");
-    setSelectedMarker(newMarker);
-    setIsPinMenuOpen(false);
-    setToastVisible(true);
-    setTimeout(() => setToastVisible(false), 1200);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setNewMarkerInfo(null);
+  };
+
+  const handleFormSubmit = async (type, payload) => {
+    if (!user) return;
+
+    try {
+      if (type === "report") {
+        await addReport({
+          ...payload,
+          reporterId: user.uid,
+          reporterName: firestoreUser?.displayName || user.displayName,
+        });
+      } else if (type === "hazard") {
+        await addOutage({
+          ...payload,
+          reporterId: user.uid,
+          reporterName: firestoreUser?.displayName || user.displayName,
+        });
+      } else if (type === "announcement" && userRole === "admin") {
+        await addAnnouncement({
+          ...payload,
+          userId: user.uid,
+        });
+      }
+
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 1200);
+    } catch (error) {
+      console.error("Failed to add marker:", error);
+    }
+  };
+
+  const handleUpvote = async () => {
+    if (!selectedMarker || !user) return;
+    const { id, type } = selectedMarker;
+    try {
+      if (type === "report") {
+        await incrementReportUpvoteCount(id);
+      } else if (type === "hazard") {
+        await incrementOutageUpvoteCount(id);
+      }
+    } catch (error) {
+      console.error("Upvote failed:", error);
+    }
+  };
+
+  const handleDownvote = async () => {
+    if (!selectedMarker || !user) return;
+    const { id, type } = selectedMarker;
+    try {
+      if (type === "report") {
+        await incrementReportDownvoteCount(id);
+      } else if (type === "hazard") {
+        await incrementOutageDownvoteCount(id);
+      }
+    } catch (error) {
+      console.error("Downvote failed:", error);
+    }
   };
 
   const handleSetLayer = (layer) => {
     setCurrentLayer(layer);
-    setIsLayerMenuOpen(false);
   };
-  const handleSetMarkerMode = (mode) => {
-    setMarkerMode(mode);
-    setIsPinMenuOpen(false);
+
+  const handleMarkerClick = (marker) => {
+    setSelectedMarker(marker);
+    if (map) {
+      map.flyTo(marker.pos, map.getZoom());
+    }
   };
-  const getModeLabel = (mode) =>
-    ({
-      report: "User Report",
-      hazard: "Hazard/Outage",
-      announcement: "Announcement",
-    }[mode] || "None");
-  const getMarkerDescription = (type) =>
-    ({
-      report: "A user has reported a potential issue in this area.",
-      hazard: "Warning: A confirmed hazard is at this location.",
-      announcement:
-        "An official announcement or maintenance notice is active.",
-    }[type] || "Details for this pin.");
-  const getMarkerHeaderClass = (type) =>
-    ({
-      report: "header-report",
-      hazard: "header-hazard",
-      announcement: "header-announcement",
-    }[type] || "");
 
   return (
     <div className="map-page-container">
-      <aside className="info-sidebar">
-        <div className="sidebar-content-wrapper">
-          <div className="sidebar-section">
-            {selectedMarker ? (
-              <div className="marker-data-display">
-                <h1 className={getMarkerHeaderClass(selectedMarker.type)}>
-                  {getModeLabel(selectedMarker.type)}
-                </h1>
-                <div className="details">
-                  <h4>Details</h4>
-                  <p>{getMarkerDescription(selectedMarker.type)}</p>
-                </div>
-                <div className="location">
-                  <h4>Location</h4>
-                  <p>
-                    <strong>Latitude:</strong> {selectedMarker.pos.lat.toFixed(5)}
-                  </p>
-                  <p>
-                    <strong>Longitude:</strong> {selectedMarker.pos.lng.toFixed(5)}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="sidebar-default-content">
-                <div className="logo-header">
-                  <Zap className="volt-logo" size={32} />
-                  <h1 className="voltizen-title">Voltizen</h1>
-                </div>
-                <p>Uniting Community & Consumption.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </aside>
+      <AddPinModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        onSubmit={handleFormSubmit}
+        markerInfo={newMarkerInfo}
+        currentUserRole={userRole}
+      />
+
+      <Sidebar
+        selectedMarker={selectedMarker}
+        onUpvote={handleUpvote}
+        onDownvote={handleDownvote}
+      />
 
       <main className="map-content">
         <MapContainer
@@ -315,19 +887,23 @@ export default function MapPage() {
               zIndex={10}
             />
           )}
-          <MapClickHandler onMapClick={handleAddMarker} markerMode={markerMode} />
+
+          <MapClickHandler
+            onMapClick={openAddMarkerModal}
+            markerMode={markerMode}
+          />
 
           <MarkerClusterGroup
             className="report-cluster-group"
             iconCreateFunction={createCustomClusterIcon("report-cluster-group")}
           >
-            {reportMarkers.map((marker) => (
+            {allMarkers.report.map((marker) => (
               <Marker
                 key={marker.id}
                 position={marker.pos}
                 icon={icons[marker.type]}
                 eventHandlers={{
-                  click: () => setSelectedMarker(marker),
+                  click: () => handleMarkerClick(marker),
                 }}
               />
             ))}
@@ -337,13 +913,13 @@ export default function MapPage() {
             className="hazard-cluster-group"
             iconCreateFunction={createCustomClusterIcon("hazard-cluster-group")}
           >
-            {hazardMarkers.map((marker) => (
+            {allMarkers.hazard.map((marker) => (
               <Marker
                 key={marker.id}
                 position={marker.pos}
                 icon={icons[marker.type]}
                 eventHandlers={{
-                  click: () => setSelectedMarker(marker),
+                  click: () => handleMarkerClick(marker),
                 }}
               />
             ))}
@@ -355,163 +931,29 @@ export default function MapPage() {
               "announcement-cluster-group"
             )}
           >
-            {announcementMarkers.map((marker) => (
+            {allMarkers.announcement.map((marker) => (
               <Marker
                 key={marker.id}
                 position={marker.pos}
                 icon={icons[marker.type]}
                 eventHandlers={{
-                  click: () => setSelectedMarker(marker),
+                  click: () => handleMarkerClick(marker),
                 }}
               />
             ))}
           </MarkerClusterGroup>
         </MapContainer>
 
-        {toastVisible && (
-          <div className="pin-toast" aria-live="polite">
-            <CheckCircle2 size={18} /> Pin added
-          </div>
-        )}
+        <Toast isVisible={toastVisible} />
 
-        <div className="controls-bottom-right">
-          {markerMode !== "none" && (
-            <div className="current-mode-notice">
-              Adding: <strong>{getModeLabel(markerMode)}</strong>
-              <button
-                onClick={() => setMarkerMode("none")}
-                aria-label="Cancel adding pin"
-              >
-                (Cancel)
-              </button>
-            </div>
-          )}
-
-          <div className="control-group zoom-controls">
-            <button
-              onClick={zoomIn}
-              className="map-button-circle"
-              title="Zoom In"
-              aria-label="Zoom in"
-            >
-              <Plus size={24} />
-            </button>
-            <button
-              onClick={zoomOut}
-              className="map-button-circle"
-              title="Zoom Out"
-              aria-label="Zoom out"
-            >
-              <Minus size={24} />
-            </button>
-          </div>
-
-          <div
-            className={`control-group expandable-menu ${
-              isPinMenuOpen ? "menu-open" : ""
-            }`}
-          >
-            <div className="sub-buttons">
-              <button
-                className="map-button-circle mode-button report"
-                title="Add User Report"
-                aria-label="Add report pin"
-                onClick={() => handleSetMarkerMode("report")}
-              >
-                <Flag size={20} />
-              </button>
-              <button
-                className="map-button-circle mode-button hazard"
-                title="Add Hazard"
-                aria-label="Add hazard pin"
-                onClick={() => handleSetMarkerMode("hazard")}
-              >
-                <TriangleAlert size={20} />
-              </button>
-              <button
-                className="map-button-circle mode-button announcement"
-                title="Add Announcement"
-                aria-label="Add announcement pin"
-                onClick={() => handleSetMarkerMode("announcement")}
-              >
-                <Megaphone size={20} />
-              </button>
-            </div>
-            <button
-              className="map-button-circle menu-toggle-button toggle-pins"
-              title="Add Pin"
-              aria-label="Toggle pin menu"
-              onClick={() => setIsPinMenuOpen(!isPinMenuOpen)}
-            >
-              <Pin size={20} />
-            </button>
-          </div>
-
-          <div
-            className={`control-group expandable-menu ${
-              isLayerMenuOpen ? "menu-open" : ""
-            }`}
-          >
-            <div className="sub-buttons">
-              <button
-                className="map-button-circle layer-button"
-                title="Light Map"
-                aria-label="Light map"
-                onClick={() => handleSetLayer(mapLayers.light)}
-              >
-                <Sun size={20} />
-              </button>
-              <button
-                className="map-button-circle layer-button"
-                title="Street Map"
-                aria-label="Street map"
-                onClick={() => handleSetLayer(mapLayers.street)}
-              >
-                <MapIcon size={20} />
-              </button>
-              <button
-                className="map-button-circle layer-button"
-                title="B&W Map"
-                aria-label="B&W map"
-                onClick={() => handleSetLayer(mapLayers.toner)}
-              >
-                <Palette size={20} />
-              </button>
-              <button
-                className="map-button-circle layer-button"
-                title="Terrain Map"
-                aria-label="Terrain map"
-                onClick={() => handleSetLayer(mapLayers.terrain)}
-              >
-                <Mountain size={20} />
-              </button>
-              <button
-                className="map-button-circle layer-button"
-                title="Satellite Map"
-                aria-label="Satellite map"
-                onClick={() => handleSetLayer(mapLayers.satellite)}
-              >
-                <Satellite size={20} />
-              </button>
-              <button
-                className="map-button-circle layer-button"
-                title="Dark Map"
-                aria-label="Dark map"
-                onClick={() => handleSetLayer(mapLayers.dark)}
-              >
-                <Moon size={20} />
-              </button>
-            </div>
-            <button
-              className="map-button-circle menu-toggle-button toggle-layers"
-              title="Change Layer"
-              aria-label="Toggle layer menu"
-              onClick={() => setIsLayerMenuOpen(!isLayerMenuOpen)}
-            >
-              <Layers size={20} />
-            </button>
-          </div>
-        </div>
+        <MapControls
+          markerMode={markerMode}
+          onSetMode={handleSetMarkerMode}
+          onZoomIn={zoomIn}
+          onZoomOut={zoomOut}
+          onSetLayer={handleSetLayer}
+          userRole={userRole}
+        />
       </main>
     </div>
   );
