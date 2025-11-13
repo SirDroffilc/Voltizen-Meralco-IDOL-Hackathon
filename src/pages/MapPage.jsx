@@ -9,7 +9,8 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { GeoPoint } from "firebase/firestore";
+import { GeoPoint, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../firebaseServices/firebaseConfig";
 import ReactDOMServer from "react-dom/server";
 
 import MarkerClusterGroup from "react-leaflet-markercluster";
@@ -41,6 +42,10 @@ import {
   Edit,
   House,
   Award,
+  Filter,
+  Calendar,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 import {
@@ -199,6 +204,19 @@ function DefaultSidebarPanel() {
   );
 }
 
+const formatTimestamp = (ts) => {
+  if (!ts) return "N/A";
+  let date;
+  if (ts.toDate) {
+    date = ts.toDate();
+  } else if (typeof ts === "string" || typeof ts === "number") {
+    date = new Date(ts);
+  } else {
+    return "Invalid Date";
+  }
+  return date.toLocaleString();
+};
+
 function MarkerDetailsPanel({
   marker,
   onUpvote,
@@ -207,6 +225,7 @@ function MarkerDetailsPanel({
   userRole,
   onApprove,
   onReject,
+  onEditStatus,
 }) {
   const {
     type,
@@ -223,6 +242,7 @@ function MarkerDetailsPanel({
     isPlanned,
     startTime,
     endTime,
+    timeCreated,
     displayName,
     credibilityScore,
     profileImageUrl,
@@ -237,19 +257,6 @@ function MarkerDetailsPanel({
     }[type] || "";
 
   const finalImageUrl = imageURL || imageUrl;
-
-  const formatTimestamp = (ts) => {
-    if (!ts) return "N/A";
-    let date;
-    if (ts.toDate) {
-      date = ts.toDate();
-    } else if (typeof ts === "string" || typeof ts === "number") {
-      date = new Date(ts);
-    } else {
-      return "Invalid Date";
-    }
-    return date.toLocaleString();
-  };
 
   const isUpvoted = currentVote === "up";
   const isDownvoted = currentVote === "down";
@@ -286,9 +293,7 @@ function MarkerDetailsPanel({
       {description && (
         <div className="details">
           <h4>Details</h4>
-          <p className="detail-description">
-            {description}
-          </p>
+          <p className="detail-description">{description}</p>
           {type === "hazard" && (
             <p>
               <strong>Type:</strong>{" "}
@@ -301,13 +306,34 @@ function MarkerDetailsPanel({
               </span>
             </p>
           )}
-          {(type === "announcement" || (type === "hazard" && isPlanned)) && (
+
+          {timeCreated && (
+            <p>
+              <strong>
+                {isPlanned ? "Event Starts" : "Reported"}
+              </strong>{" "}
+              {formatTimestamp(timeCreated)}
+            </p>
+          )}
+
+          {isPlanned && (
             <>
               <p>
                 <strong>Starts:</strong> {formatTimestamp(startTime)}
               </p>
               <p>
                 <strong>Ends:</strong> {formatTimestamp(endTime)}
+              </p>
+            </>
+          )}
+
+          {!isPlanned && type !== "connection" && type !== "announcement" && (
+            <>
+              <p>
+                <strong>Discovered:</strong> {formatTimestamp(startTime)}
+              </p>
+              <p>
+                <strong>Fixed:</strong> {formatTimestamp(endTime)}
               </p>
             </>
           )}
@@ -348,23 +374,32 @@ function MarkerDetailsPanel({
         </p>
       </div>
 
-      {isAdmin && isPending && type !== "announcement" && type !== "connection" && (
+      {isAdmin && type !== "announcement" && type !== "connection" && (
         <div className="admin-approval-controls">
           <h4>Admin Action</h4>
-          <div className="admin-buttons">
+          {isPending ? (
+            <div className="admin-buttons">
+              <button
+                className="button-primary approve-button"
+                onClick={onApprove}
+              >
+                <Check size={18} /> Approve
+              </button>
+              <button
+                className="button-secondary reject-button"
+                onClick={onReject}
+              >
+                <XCircle size={18} /> Reject
+              </button>
+            </div>
+          ) : (
             <button
-              className="button-primary approve-button"
-              onClick={onApprove}
+              className="button-primary edit-status-button"
+              onClick={onEditStatus}
             >
-              <Check size={18} /> Approve
+              <Edit size={18} /> Edit Status
             </button>
-            <button
-              className="button-secondary reject-button"
-              onClick={onReject}
-            >
-              <XCircle size={18} /> Reject
-            </button>
-          </div>
+          )}
         </div>
       )}
 
@@ -404,6 +439,7 @@ function Sidebar({
   userRole,
   onApprove,
   onReject,
+  onEditStatus,
 }) {
   const currentVote = selectedMarker
     ? votedItems[selectedMarker.id]
@@ -422,6 +458,7 @@ function Sidebar({
               userRole={userRole}
               onApprove={onApprove}
               onReject={onReject}
+              onEditStatus={onEditStatus}
             />
           ) : (
             <DefaultSidebarPanel />
@@ -655,6 +692,142 @@ function AddPinModal({
   );
 }
 
+function EditStatusModal({ isOpen, onClose, marker, onStatusUpdate }) {
+  const [responseStatus, setResponseStatus] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (marker) {
+      setResponseStatus(marker.responseStatus || "not started");
+      setStartTime(marker.startTime ? new Date(marker.startTime.toDate()).toISOString().slice(0, 16) : "");
+      setEndTime(marker.endTime ? new Date(marker.endTime.toDate()).toISOString().slice(0, 16) : "");
+    }
+  }, [marker]);
+
+  if (!isOpen || !marker) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    const dates = {
+      startTime: startTime ? new Date(startTime) : null,
+      endTime: endTime ? new Date(endTime) : null,
+    };
+
+    if (responseStatus === "fixed" && !dates.endTime) {
+      dates.endTime = serverTimestamp();
+    }
+    
+    if (responseStatus === "in progress" && !dates.startTime) {
+        dates.startTime = serverTimestamp();
+    }
+
+    try {
+      await onStatusUpdate(marker, responseStatus, dates);
+    } catch (err) {
+      console.error("Failed to update status:", err);
+    } finally {
+      setIsLoading(false);
+      onClose();
+    }
+  };
+
+  const isUnplanned = !marker.isPlanned && marker.type === "hazard";
+  const isReport = marker.type === "report";
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <form onSubmit={handleSubmit}>
+          <div className="modal-header">
+            <h3>Update Status</h3>
+            <button
+              type="button"
+              onClick={onClose}
+              className="modal-close-button"
+              disabled={isLoading}
+            >
+              <X size={24} />
+            </button>
+          </div>
+
+          <p className="modal-subtitle">
+            Editing status for: <strong>{marker.title}</strong>
+          </p>
+
+          <div className="form-group">
+            <label htmlFor="responseStatus">Response Status</label>
+            <select
+              id="responseStatus"
+              name="responseStatus"
+              value={responseStatus}
+              onChange={(e) => setResponseStatus(e.target.value)}
+              disabled={isLoading}
+            >
+              <option value="not started">Not Started</option>
+              <option value="in progress">In Progress</option>
+              <option value="fixed">Fixed</option>
+            </select>
+          </div>
+
+          {(isUnplanned || (isReport && responseStatus === 'fixed')) && (
+            <div className="form-group">
+              <label htmlFor="startTime">
+                {isUnplanned ? "Discovered Date" : "Start Date"}
+              </label>
+              <input
+                type="datetime-local"
+                id="startTime"
+                name="startTime"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                disabled={isLoading || responseStatus === 'not started'}
+              />
+            </div>
+          )}
+
+          {(isUnplanned || (isReport && responseStatus === 'fixed')) && (
+            <div className="form-group">
+              <label htmlFor="endTime">
+                {isUnplanned ? "Fixed Date" : "End Date"}
+              </label>
+              <input
+                type="datetime-local"
+                id="endTime"
+                name="endTime"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                disabled={isLoading || responseStatus !== 'fixed'}
+              />
+            </div>
+          )}
+
+          <div className="modal-footer">
+            <button
+              type="button"
+              onClick={onClose}
+              className="button-secondary"
+              disabled={isLoading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="button-primary"
+              disabled={isLoading}
+            >
+              {isLoading ? "Updating..." : "Update Status"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function ZoomControls({ onZoomIn, onZoomOut }) {
   return (
     <div className="control-group zoom-controls">
@@ -808,6 +981,76 @@ function LayerMenu({ onSetLayer }) {
   );
 }
 
+function FilterMenu({ filters, onFilterChange }) {
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+
+  const handleToggle = (filterName) => {
+    onFilterChange((prev) => ({
+      ...prev,
+      [filterName]: !prev[filterName],
+    }));
+  };
+
+  return (
+    <div
+      className={`control-group expandable-menu ${
+        isFilterMenuOpen ? "menu-open" : ""
+      }`}
+    >
+      <div className="sub-buttons filter-buttons">
+        <button
+          className={`map-button-circle filter-button ${
+            filters.report ? "active" : ""
+          }`}
+          title="Toggle Reports"
+          aria-label="Toggle reports"
+          onClick={() => handleToggle("report")}
+        >
+          <Flag size={20} />
+        </button>
+        <button
+          className={`map-button-circle filter-button ${
+            filters.hazard ? "active" : ""
+          }`}
+          title="Toggle Outages"
+          aria-label="Toggle outages"
+          onClick={() => handleToggle("hazard")}
+        >
+          <TriangleAlert size={20} />
+        </button>
+        <button
+          className={`map-button-circle filter-button ${
+            filters.announcement ? "active" : ""
+          }`}
+          title="Toggle Announcements"
+          aria-label="Toggle announcements"
+          onClick={() => handleToggle("announcement")}
+        >
+          <Megaphone size={20} />
+        </button>
+        <button
+          className={`map-button-circle filter-button ${
+            filters.connection ? "active" : ""
+          }`}
+          title="Toggle Connections"
+          aria-label="Toggle connections"
+          onClick={() => handleToggle("connection")}
+        >
+          <House size={20} />
+        </button>
+      </div>
+      <button
+        className="map-button-circle menu-toggle-button toggle-filters"
+        title="Filter Markers"
+        aria-label="Toggle filter menu"
+        onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
+      >
+        <Filter size={20} />
+      </button>
+    </div>
+  );
+}
+
 function MapControls({
   markerMode,
   onSetMode,
@@ -815,6 +1058,8 @@ function MapControls({
   onZoomOut,
   onSetLayer,
   userRole,
+  filters,
+  onFilterChange,
 }) {
   return (
     <div className="controls-bottom-right">
@@ -828,6 +1073,7 @@ function MapControls({
       )}
 
       <ZoomControls onZoomIn={onZoomIn} onZoomOut={onZoomOut} />
+      <FilterMenu filters={filters} onFilterChange={onFilterChange} />
       <PinMenu onSetMode={onSetMode} userRole={userRole} />
       <LayerMenu onSetLayer={onSetLayer} />
     </div>
@@ -879,6 +1125,7 @@ export default function MapPage() {
   const [connections, setConnections] = useState([]);
 
   const [selectedMarker, setSelectedMarker] = useState(null);
+  const [editingMarker, setEditingMarker] = useState(null);
   const [markerMode, setMarkerMode] = useState("none");
   const [currentLayer, setCurrentLayer] = useState(mapLayers.light);
   const [toast, setToast] = useState({ isVisible: false, message: "" });
@@ -890,6 +1137,13 @@ export default function MapPage() {
 
   const [isDrawing, setIsDrawing] = useState(false);
   const [polygonPoints, setPolygonPoints] = useState([]);
+
+  const [filters, setFilters] = useState({
+    report: true,
+    hazard: true,
+    announcement: true,
+    connection: true,
+  });
 
   const defaultCenter = [14.589615, 121.065289];
   const zoom = 6;
@@ -930,15 +1184,19 @@ export default function MapPage() {
 
   const allMarkers = useMemo(() => {
     const visibleReports = reports.filter(
-      (r) => isAdmin || r.approvalStatus === "approved"
+      (r) => (isAdmin || r.approvalStatus === "approved") && filters.report
     );
     const visibleOutages = outages.filter(
-      (o) => isAdmin || o.approvalStatus === "approved"
+      (o) => (isAdmin || o.approvalStatus === "approved") && filters.hazard
     );
     const visibleConnections = connections.filter(
       (c) =>
-        c.locationSharingPrivacy === "public" ||
-        c.locationSharingPrivacy === "connectionsOnly"
+        (c.locationSharingPrivacy === "public" ||
+          c.locationSharingPrivacy === "connectionsOnly") &&
+        filters.connection
+    );
+    const visibleAnnouncements = announcements.filter(
+      () => filters.announcement
     );
 
     const reportMarkers = visibleReports
@@ -961,7 +1219,7 @@ export default function MapPage() {
         type: "hazard",
       }));
 
-    const announcementMarkers = announcements
+    const announcementMarkers = visibleAnnouncements
       .filter((a) => a.location?.latitude && a.location?.longitude)
       .map((a) => ({
         ...a,
@@ -987,11 +1245,11 @@ export default function MapPage() {
       announcement: announcementMarkers,
       connection: connectionMarkers,
     };
-  }, [reports, outages, announcements, connections, isAdmin]);
+  }, [reports, outages, announcements, connections, isAdmin, filters]);
 
   const showToast = (message) => {
     setToast({ isVisible: true, message });
-    setTimeout(() => setToast({ isVisible: false, message: "" }), 2000);
+    setTimeout(() => setToast({ isVisible: false, message: "" }), 4000);
   };
 
   const zoomIn = () => map && map.zoomIn();
@@ -1059,7 +1317,7 @@ export default function MapPage() {
           userId: user.uid,
         });
       }
-      showToast("Pin added successfully!");
+      showToast("Pin added! Waiting for admin approval.");
     } catch (error) {
       console.error("Failed to add marker:", error);
     }
@@ -1138,6 +1396,49 @@ export default function MapPage() {
     }
   };
 
+  const handleEditStatus = () => {
+    setEditingMarker(selectedMarker);
+  };
+
+  const handleCloseEditModal = () => {
+    setEditingMarker(null);
+  };
+
+  const handleUpdateMarkerStatus = async (marker, newStatus, dates) => {
+    const { id, type } = marker;
+    const payload = { ...dates };
+
+    try {
+      if (type === "report") {
+        await updateReportApprovalStatus(id, newStatus);
+        const reportRef = doc(db, "reports", id);
+        if (newStatus === "fixed" && payload.endTime) {
+          await updateDoc(reportRef, { endTime: payload.endTime });
+        } else if (newStatus === "in progress" && payload.startTime) {
+          await updateDoc(reportRef, { startTime: payload.startTime });
+        }
+      } else if (type === "hazard") {
+        await updateOutageApprovalStatus(id, newStatus);
+        const outageRef = doc(db, "outages", id);
+        if (newStatus === "fixed" && payload.endTime) {
+          await updateDoc(outageRef, { endTime: payload.endTime });
+        } else if (newStatus === "in progress" && payload.startTime) {
+          await updateDoc(outageRef, { startTime: payload.startTime });
+        }
+      }
+
+      setSelectedMarker((prev) => ({
+        ...prev,
+        responseStatus: newStatus,
+        startTime: dates.startTime || prev.startTime,
+        endTime: dates.endTime || prev.endTime,
+      }));
+      showToast("Status updated successfully!");
+    } catch (error) {
+      console.error("Failed to update status:", error);
+    }
+  };
+
   const allPolygons = [
     ...allMarkers.report,
     ...allMarkers.hazard,
@@ -1156,6 +1457,13 @@ export default function MapPage() {
         polygonPoints={polygonPoints}
       />
 
+      <EditStatusModal
+        isOpen={!!editingMarker}
+        onClose={handleCloseEditModal}
+        marker={editingMarker}
+        onStatusUpdate={handleUpdateMarkerStatus}
+      />
+
       <Sidebar
         selectedMarker={selectedMarker}
         onUpvote={handleUpvote}
@@ -1164,6 +1472,7 @@ export default function MapPage() {
         userRole={userRole}
         onApprove={handleApprove}
         onReject={handleReject}
+        onEditStatus={handleEditStatus}
       />
 
       <main className="map-content">
@@ -1303,6 +1612,8 @@ export default function MapPage() {
             onZoomOut={zoomOut}
             onSetLayer={handleSetLayer}
             userRole={userRole}
+            filters={filters}
+            onFilterChange={setFilters}
           />
         )}
       </main>
