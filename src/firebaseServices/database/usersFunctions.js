@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import useAuth from "../auth/useAuth";
 import { db } from "../firebaseConfig";
-import { where, collection, addDoc, doc, updateDoc, getDoc, GeoPoint, deleteField, onSnapshot, query, documentId, getDocs } from "firebase/firestore";
+import { where, collection, addDoc, doc, updateDoc, getDoc, GeoPoint, deleteField, onSnapshot, query, documentId, getDocs, increment } from "firebase/firestore";
 import defaultPfp from "../../assets/default-pfp.png"
 import { addApplianceToInventory } from "./inventoryFunctions";
 
@@ -351,7 +351,7 @@ export function listenToUserFeed(
           }
         });
 
-        // --- 3. Sorting connections and nonConnnections ---
+        // --- 3. Sorting connections and nonConnConnections ---
         connections.sort((a, b) => (
           (b.credibilityScore || 0) - (a.credibilityScore || 0)
         ))
@@ -626,6 +626,66 @@ export async function updateLocationSharingPrivacy(userId, newSetting) {
     };
   } catch (error) {
     console.error("Error updating locationSharingPrivacy:", error);
+    throw error;
+  }
+}
+
+/**
+ * Increments the `credibilityScore` field of a user document in the `users` collection by 1.
+ *
+ * @param {string} userId - The UID of the user whose credibility score is to be incremented.
+ * @returns {Promise<void>} Resolves when the operation is successful.
+ * @throws {Error} If the userId is invalid or the Firestore operation fails.
+ */
+export async function incrementUserCredibilityScore(userId) {
+  if (!userId) {
+    throw new Error("User ID is required to increment credibility score.");
+  }
+
+  try {
+    const userDocRef = doc(db, "users", userId);
+    await updateDoc(userDocRef, {
+      credibilityScore: increment(1),
+    });
+    console.log(`Credibility score incremented for user ${userId}`);
+  } catch (error) {
+    console.error("Error incrementing credibility score:", error);
+    throw error;
+  }
+}
+
+/**
+ * Updates the `credibilityScore` field of a user document in the `users` collection by decrementing it by 1.
+ *
+ * @param {string} userId - The UID of the user whose credibility score is to be decremented.
+ * @returns {Promise<void>} Resolves when the operation is successful.
+ * @throws {Error} If the userId is invalid or the Firestore operation fails.
+ */
+export async function decrementUserCredibilityScore(userId) {
+  if (!userId) {
+    throw new Error("User ID is required to increment credibility score.");
+  }
+
+  try {
+    const userDocRef = doc(db, "users", userId);
+    const userDoc = await getDoc(userDocRef);
+
+    if (!userDoc.exists()) {
+      throw new Error("User does not exist.");
+    }
+
+    const currentScore = userDoc.data().credibilityScore || 0;
+
+    if (currentScore > 0) {
+      await updateDoc(userDocRef, {
+        credibilityScore: increment(-1),
+      });
+      console.log(`Credibility score decremented for user ${userId}`);
+    } else {
+      console.log(`Credibility score for user ${userId} is already at the minimum value of 0.`);
+    }
+  } catch (error) {
+    console.error("Error decrementing credibility score:", error);
     throw error;
   }
 }

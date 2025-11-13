@@ -1,6 +1,6 @@
 import { db } from "../firebaseConfig";
 import { where, collection, orderBy, addDoc, doc, updateDoc, getDoc, GeoPoint, deleteField, onSnapshot, query, documentId, deleteDoc, getDocs, serverTimestamp } from "firebase/firestore";
-
+import { incrementUserCredibilityScore, decrementUserCredibilityScore } from "./usersFunctions";
 /**
  * Add an outage document to the `outages` collection.
  *
@@ -59,6 +59,8 @@ export async function addOutage(outageData) {
             timeCreated: serverTimestamp(),
             approvalStatus: approvalStatus || "pending",
             responseStatus: responseStatus || "in progress",
+            upvoteCount: 0,
+            downvoteCount: 0,
         };
 
         const colRef = collection(db, "outages");
@@ -208,6 +210,80 @@ export async function getOutageById(outageId) {
     return { id: docSnap.id, ...docSnap.data() };
   } catch (error) {
     console.error("Error retrieving outage:", error);
+    throw error;
+  }
+}
+
+/**
+ * Increments the upvote count for a specific outage in the `outages` collection.
+ *
+ * - Updates the `upvoteCount` field in Firestore by incrementing it by 1.
+ * - Retrieves the `reporterId` from the outage document and increments the user's credibility score.
+ *
+ * @param {string} outageId - The ID of the outage to increment the upvote count for.
+ * @returns {Promise<void>} Resolves when the operation is successful.
+ * @throws {Error} If the `outageId` is invalid or the Firestore operation fails.
+ */
+export async function incrementOutageUpvoteCount(outageId) {
+  if (!outageId) {
+    throw new Error("Outage ID is required to increment upvote count.");
+  }
+
+  try {
+    const outageDocRef = doc(db, "outages", outageId);
+    await updateDoc(outageDocRef, {
+      upvoteCount: increment(1),
+    });
+
+    const outageDoc = await getDoc(outageDocRef);
+    const reporterId = outageDoc.data().reporterId;
+
+    if (reporterId) {
+      await incrementUserCredibilityScore(reporterId); // Await the function to ensure it completes
+    } else {
+      console.warn(`No reporterId found for outage ${outageId}`);
+    }
+
+    console.log(`Upvote count incremented for outage ${outageId}`);
+  } catch (error) {
+    console.error("Error incrementing upvote count:", error);
+    throw error;
+  }
+}
+
+/**
+ * Increments the downvote count for a specific outage in the `outages` collection.
+ *
+ * - Updates the `downvoteCount` field in Firestore by incrementing it by 1.
+ * - Retrieves the `reporterId` from the outage document and decrements the user's credibility score.
+ *
+ * @param {string} outageId - The ID of the outage to increment the downvote count for.
+ * @returns {Promise<void>} Resolves when the operation is successful.
+ * @throws {Error} If the `outageId` is invalid or the Firestore operation fails.
+ */
+export async function incrementOutageDownvoteCount(outageId) {
+  if (!outageId) {
+    throw new Error("Outage ID is required to increment downvote count.");
+  }
+
+  try {
+    const outageDocRef = doc(db, "outages", outageId);
+    await updateDoc(outageDocRef, {
+      downvoteCount: increment(1),
+    });
+
+    const outageDoc = await getDoc(outageDocRef);
+    const reporterId = outageDoc.data().reporterId;
+
+    if (reporterId) {
+      await decrementUserCredibilityScore(reporterId); // Await the function to ensure it completes
+    } else {
+      console.warn(`No reporterId found for outage ${outageId}`);
+    }
+
+    console.log(`Downvote count incremented for outage ${outageId}`);
+  } catch (error) {
+    console.error("Error incrementing downvote count:", error);
     throw error;
   }
 }
