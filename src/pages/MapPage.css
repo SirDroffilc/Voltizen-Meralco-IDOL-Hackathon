@@ -10,11 +10,11 @@
 }
 
 .info-sidebar {
-  width: 350px;
+  width: 380px;
   height: 100%;
   background-color: var(--sidebar-bg);
   color: var(--sidebar-text);
-  padding: 24px;
+  padding: 24px 30px;
   overflow-y: auto;
   border-right: 1px solid var(--border-color);
   box-shadow: 4px 0 15px rgba(0, 0, 0, 0.05);
@@ -50,7 +50,8 @@
   align-items: center;
   gap: 12px;
   border-bottom: 2px solid var(--primary-300);
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
 }
 
 .volt-logo {
@@ -58,39 +59,45 @@
   flex-shrink: 0;
 }
 
+.sidebar-default-content {
+  text-align: center;
+  padding-top: 20%;
+}
+
 .sidebar-default-content .voltizen-title {
   color: var(--sidebar-header);
   border-bottom: none;
   margin-bottom: 0;
   padding-bottom: 0;
+  font-size: 2.25rem;
 }
 
-.sidebar-default-content p {
+.sidebar-default-content .logo-header {
+  justify-content: center;
+  border-bottom: none;
+}
+
+.sidebar-default-content .sidebar-tagline {
   color: var(--sidebar-text-muted);
   font-size: 1rem;
   line-height: 1.6;
-  margin-top: 8px;
-}
-
-.sidebar-login-prompt p {
   font-style: italic;
+  margin-top: 4px;
 }
 
-.login-button {
-  width: 100%;
-  margin-top: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 16px;
+.sidebar-default-content .sidebar-instruction {
+  color: var(--sidebar-text);
   font-size: 1rem;
+  line-height: 1.6;
+  margin-top: 24px;
 }
 
 .marker-data-display h1 {
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   border-bottom-width: 2px;
   border-bottom-style: solid;
+  line-height: 1.4;
+  padding-bottom: 12px;
 }
 
 .marker-data-display h1.header-report {
@@ -125,62 +132,164 @@
 .marker-data-display .details,
 .marker-data-display .location,
 .marker-data-display .status {
-  margin-top: 20px;
+  margin-top: 24px;
 }
 
 .marker-data-display h4 {
-  color: var(--sidebar-text-muted);
+  color: var(--sidebar-text);
+  font-family: "Orbitron", sans-serif;
   font-size: 0.9rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin: 0 0 4px 0;
+  margin: 0 0 10px 0;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 6px;
 }
 
 .marker-data-display p {
   color: var(--sidebar-text);
+  font-size: 0.95rem;
+  margin: 8px 0;
+  line-height: 1.6;
+}
+
+.marker-data-display .detail-description {
   font-size: 1rem;
-  margin: 4px 0;
-  line-height: 1.5;
+  line-height: 1.7;
+  color: var(--sidebar-text-emphasis);
 }
 
 .marker-data-display p strong {
   color: var(--sidebar-text-muted);
   font-weight: 600;
-  margin-right: 4px;
+  margin-right: 6px;
+}
+
+.planned-outage {
+  color: var(--tertiary-700);
+  font-weight: 700;
+}
+
+.unplanned-outage {
+  color: var(--secondary-base);
+  font-weight: 700;
+}
+
+.status span {
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background-color: var(--grey-100);
+  text-transform: capitalize;
+}
+.status .status-pending {
+  background-color: var(--tertiary-100);
+  color: var(--tertiary-800);
+}
+.status .status-approved {
+  background-color: var(--secondary-lightest);
+  color: var(--secondary-darkest);
+}
+.status .status-rejected {
+  background-color: var(--primary-100);
+  color: var(--primary-700);
+}
+.status .status-in-progress {
+  background-color: var(--blue-v-light);
+  color: var(--blue-v);
+}
+.status .status-fixed {
+  background-color: var(--secondary-lightest);
+  color: var(--secondary-darkest);
+}
+.status .status-not-started {
+  background-color: var(--grey-200);
+  color: var(--grey-700);
+}
+
+.admin-approval-controls {
+  margin-top: 24px;
+}
+.admin-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+}
+.admin-buttons button {
+  flex: 1;
+  padding: 10px;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.admin-buttons .approve-button {
+  background-color: var(--secondary-base);
+  color: var(--secondary-darkest);
+}
+.admin-buttons .approve-button:hover {
+  background-color: var(--secondary-dark);
+}
+.admin-buttons .reject-button {
+  background-color: var(--primary-500);
+}
+.admin-buttons .reject-button:hover {
+  background-color: var(--primary-600);
+}
+
+.vote-controls-wrapper {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
 }
 
 .vote-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 12px;
+  justify-content: center;
+  gap: 16px;
 }
 
-.vote-controls button {
-  background: var(--grey-100);
+.vote-controls .vote-button {
+  background: var(--sidebar-bg);
   border: 1px solid var(--border-color);
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
+  border-radius: 8px;
+  padding: 8px 16px;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   cursor: pointer;
   color: var(--sidebar-text-muted);
   transition: all 0.2s ease;
+  flex: 1;
 }
 
-.vote-controls button:hover {
-  background: var(--grey-200);
+.vote-controls .vote-button:hover:not(:disabled) {
+  background: var(--grey-100);
   color: var(--sidebar-text);
+  border-color: var(--grey-400);
 }
 
-.vote-controls span {
+.vote-controls .vote-button span {
   font-weight: 700;
   font-size: 1.1rem;
   min-width: 20px;
-  text-align: center;
+  text-align: left;
+}
+
+.vote-controls .vote-button.active {
+  color: var(--primary-500);
+  border-color: var(--primary-300);
+  background-color: var(--primary-100);
+}
+
+.vote-controls .vote-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .controls-bottom-right {
@@ -305,6 +414,33 @@
   margin-left: 5px;
 }
 
+.drawing-controls {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background-color: #ffffff;
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+.drawing-notice {
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.drawing-buttons {
+  display: flex;
+  gap: 10px;
+}
+
 .crosshair-cursor .leaflet-container {
   cursor: crosshair;
 }
@@ -372,7 +508,7 @@
   align-items: center;
   gap: 8px;
   font-size: 0.9rem;
-  animation: fadeInOut 1.2s ease-out;
+  animation: fadeInOut 2s ease-out;
 }
 
 @keyframes fadeInOut {
@@ -380,11 +516,11 @@
     opacity: 0;
     transform: translateX(-50%) translateY(20px);
   }
-  20% {
+  15% {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
-  80% {
+  85% {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
@@ -482,6 +618,14 @@
 .form-group textarea {
   resize: vertical;
   min-height: 80px;
+}
+
+.form-group .button-secondary {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .form-group-checkbox {

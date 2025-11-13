@@ -5,9 +5,11 @@ import {
   TileLayer,
   Marker,
   useMapEvents,
+  Polygon,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { GeoPoint } from "firebase/firestore";
 
 import MarkerClusterGroup from "react-leaflet-markercluster";
 import "leaflet.markercluster/dist/MarkerCluster.css";
@@ -31,9 +33,11 @@ import {
   Zap,
   CheckCircle2,
   X,
-  ArrowUp,
-  ArrowDown,
-  Image as ImageIcon,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  Check,
+  XCircle,
+  Edit,
 } from "lucide-react";
 
 import {
@@ -46,12 +50,14 @@ import {
   getAllOutages,
   incrementOutageUpvoteCount,
   incrementOutageDownvoteCount,
+  updateOutageApprovalStatus,
 } from "../firebaseServices/database/outagesFunctions";
 import {
   addReport,
   getAllReports,
   incrementReportUpvoteCount,
   incrementReportDownvoteCount,
+  updateReportApprovalStatus,
   getReportImageURL,
 } from "../firebaseServices/database/reportsFunctions";
 
@@ -112,10 +118,14 @@ const labelsLayerUrl =
   "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}";
 const labelsLayerAttribution = "&copy; Esri &mdash; Boundaries & Places";
 
-function MapClickHandler({ onMapClick, markerMode }) {
+function MapClickHandler({ onMapClick, markerMode, isDrawing }) {
   useMapEvents({
     click(e) {
-      if (markerMode !== "none") onMapClick(e.latlng);
+      if (isDrawing) {
+        onMapClick(e.latlng, true);
+      } else if (markerMode !== "none") {
+        onMapClick(e.latlng, false);
+      }
     },
   });
   return null;
@@ -162,13 +172,23 @@ function DefaultSidebarPanel() {
         <Zap className="volt-logo" size={32} />
         <h1 className="voltizen-title">Voltizen</h1>
       </div>
-      <p>Uniting Community & Consumption.</p>
-      <p>Click a pin to see details or add your own report.</p>
+      <p className="sidebar-tagline">Uniting Community & Consumption.</p>
+      <p className="sidebar-instruction">
+        Click a pin to see details or add your own report.
+      </p>
     </div>
   );
 }
 
-function MarkerDetailsPanel({ marker, onUpvote, onDownvote }) {
+function MarkerDetailsPanel({
+  marker,
+  onUpvote,
+  onDownvote,
+  currentVote,
+  userRole,
+  onApprove,
+  onReject,
+}) {
   const {
     type,
     title,
@@ -208,22 +228,14 @@ function MarkerDetailsPanel({ marker, onUpvote, onDownvote }) {
     return date.toLocaleString();
   };
 
+  const isUpvoted = currentVote === "up";
+  const isDownvoted = currentVote === "down";
+  const isAdmin = userRole === "admin";
+  const isPending = approvalStatus === "pending";
+
   return (
     <div className="marker-data-display">
       <h1 className={headerClass}>{title || getModeLabel(type)}</h1>
-
-      {type !== "announcement" && (
-        <div className="vote-controls">
-          <button onClick={onUpvote} aria-label="Upvote">
-            <ArrowUp size={20} />
-          </button>
-          <span>{upvoteCount || 0}</span>
-          <button onClick={onDownvote} aria-label="Downvote">
-            <ArrowDown size={20} />
-          </button>
-          <span>{downvoteCount || 0}</span>
-        </div>
-      )}
 
       {finalImageUrl && (
         <div className="marker-image-wrapper">
@@ -233,10 +245,19 @@ function MarkerDetailsPanel({ marker, onUpvote, onDownvote }) {
 
       <div className="details">
         <h4>Details</h4>
-        <p>{description || "No description provided."}</p>
+        <p className="detail-description">
+          {description || "No description provided."}
+        </p>
         {type === "hazard" && (
           <p>
-            <strong>Type:</strong> {isPlanned ? "Planned" : "Unplanned"}
+            <strong>Type:</strong>{" "}
+            <span
+              className={
+                isPlanned ? "planned-outage" : "unplanned-outage"
+              }
+            >
+              {isPlanned ? "Planned" : "Unplanned"}
+            </span>
           </p>
         )}
         {(type === "announcement" || (type === "hazard" && isPlanned)) && (
@@ -259,12 +280,16 @@ function MarkerDetailsPanel({ marker, onUpvote, onDownvote }) {
         )}
         {responseStatus && (
           <p>
-            <strong>Status:</strong> {responseStatus}
+            <strong>Status:</strong>{" "}
+            <span className={`status-${responseStatus.replace(" ", "-")}`}>
+              {responseStatus}
+            </span>
           </p>
         )}
         {approvalStatus && (
           <p>
-            <strong>Approval:</strong> {approvalStatus}
+            <strong>Approval:</strong>{" "}
+            <span className={`status-${approvalStatus}`}>{approvalStatus}</span>
           </p>
         )}
       </div>
@@ -278,11 +303,68 @@ function MarkerDetailsPanel({ marker, onUpvote, onDownvote }) {
           <strong>Longitude:</strong> {pos.lng.toFixed(5)}
         </p>
       </div>
+
+      {isAdmin && isPending && type !== "announcement" && (
+        <div className="admin-approval-controls">
+          <h4>Admin Action</h4>
+          <div className="admin-buttons">
+            <button
+              className="button-primary approve-button"
+              onClick={onApprove}
+            >
+              <Check size={18} /> Approve
+            </button>
+            <button
+              className="button-secondary reject-button"
+              onClick={onReject}
+            >
+              <XCircle size={18} /> Reject
+            </button>
+          </div>
+        </div>
+      )}
+
+      {type !== "announcement" && (
+        <div className="vote-controls-wrapper">
+          <div className="vote-controls">
+            <button
+              onClick={onUpvote}
+              aria-label="Upvote"
+              className={`vote-button ${isUpvoted ? "active" : ""}`}
+              disabled={isUpvoted}
+            >
+              <ArrowUpCircle size={22} />
+              <span>{upvoteCount || 0}</span>
+            </button>
+            <button
+              onClick={onDownvote}
+              aria-label="Downvote"
+              className={`vote-button ${isDownvoted ? "active" : ""}`}
+              disabled={isDownvoted}
+            >
+              <ArrowDownCircle size={22} />
+              <span>{downvoteCount || 0}</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function Sidebar({ selectedMarker, onUpvote, onDownvote }) {
+function Sidebar({
+  selectedMarker,
+  onUpvote,
+  onDownvote,
+  votedItems,
+  userRole,
+  onApprove,
+  onReject,
+}) {
+  const currentVote = selectedMarker
+    ? votedItems[selectedMarker.id]
+    : null;
+
   return (
     <aside className="info-sidebar">
       <div className="sidebar-content-wrapper">
@@ -292,6 +374,10 @@ function Sidebar({ selectedMarker, onUpvote, onDownvote }) {
               marker={selectedMarker}
               onUpvote={onUpvote}
               onDownvote={onDownvote}
+              currentVote={currentVote}
+              userRole={userRole}
+              onApprove={onApprove}
+              onReject={onReject}
             />
           ) : (
             <DefaultSidebarPanel />
@@ -302,7 +388,15 @@ function Sidebar({ selectedMarker, onUpvote, onDownvote }) {
   );
 }
 
-function AddPinModal({ isOpen, onClose, onSubmit, markerInfo, currentUserRole }) {
+function AddPinModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  markerInfo,
+  currentUserRole,
+  onDrawArea,
+  polygonPoints,
+}) {
   const [formData, setFormData] = useState(initialFormData);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -315,6 +409,10 @@ function AddPinModal({ isOpen, onClose, onSubmit, markerInfo, currentUserRole })
   if (!isOpen || !markerInfo) return null;
 
   const { type } = markerInfo;
+  const isPlannedHazard =
+    type === "hazard" &&
+    currentUserRole === "admin" &&
+    formData.isPlanned;
 
   const handleFormChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -353,6 +451,11 @@ function AddPinModal({ isOpen, onClose, onSubmit, markerInfo, currentUserRole })
         }
       }
 
+      const geoPointsPayload =
+        polygonPoints.length > 2
+          ? polygonPoints.map((p) => new GeoPoint(p.lat, p.lng))
+          : [];
+
       const payload = {
         title,
         description,
@@ -361,6 +464,7 @@ function AddPinModal({ isOpen, onClose, onSubmit, markerInfo, currentUserRole })
         isPlanned: currentUserRole === "admin" ? isPlanned : false,
         startTime: startTime || null,
         endTime: endTime || null,
+        geopoints: geoPointsPayload,
       };
 
       await onSubmit(type, payload);
@@ -442,8 +546,7 @@ function AddPinModal({ isOpen, onClose, onSubmit, markerInfo, currentUserRole })
             </div>
           )}
 
-          {(type === "announcement" ||
-            (type === "hazard" && formData.isPlanned)) && (
+          {(type === "announcement" || isPlannedHazard) && (
             <>
               <div className="form-group">
                 <label htmlFor="startTime">Start Time (Optional)</label>
@@ -468,6 +571,21 @@ function AddPinModal({ isOpen, onClose, onSubmit, markerInfo, currentUserRole })
                 />
               </div>
             </>
+          )}
+
+          {(type === "announcement" || isPlannedHazard) && (
+            <div className="form-group">
+              <label>Affected Area</label>
+              <button
+                type="button"
+                className="button-secondary"
+                onClick={onDrawArea}
+                disabled={isUploading}
+              >
+                <Edit size={16} />
+                {polygonPoints.length > 0 ? `Redraw Area (${polygonPoints.length} points)` : "Draw Area"}
+              </button>
+            </div>
           )}
 
           <div className="modal-footer">
@@ -672,18 +790,44 @@ function MapControls({
   );
 }
 
-function Toast({ isVisible }) {
-  if (!isVisible) return null;
+function DrawingControls({ onFinish, onCancel }) {
   return (
-    <div className="pin-toast" aria-live="polite">
-      <CheckCircle2 size={18} /> Pin added
+    <div className="drawing-controls">
+      <div className="drawing-notice">
+        <Edit size={16} />
+        <strong>Drawing Mode:</strong> Click to add points
+      </div>
+      <div className="drawing-buttons">
+        <button className="button-primary" onClick={onFinish}>
+          Finish Drawing
+        </button>
+        <button className="button-secondary" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
     </div>
   );
 }
 
+function Toast({ isVisible, message }) {
+  if (!isVisible) return null;
+  return (
+    <div className="pin-toast" aria-live="polite">
+      <CheckCircle2 size={18} /> {message}
+    </div>
+  );
+}
+
+const polygonOptions = {
+  report: { color: "var(--primary-500)", fillColor: "var(--primary-500)" },
+  hazard: { color: "var(--secondary-base)", fillColor: "var(--secondary-base)" },
+  announcement: { color: "var(--tertiary-500)", fillColor: "var(--tertiary-500)" },
+};
+
 export default function MapPage() {
   const { user, firestoreUser } = useAuth();
   const userRole = firestoreUser?.userRole || "regular";
+  const isAdmin = userRole === "admin";
 
   const [reports, setReports] = useState([]);
   const [outages, setOutages] = useState([]);
@@ -692,18 +836,21 @@ export default function MapPage() {
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [markerMode, setMarkerMode] = useState("none");
   const [currentLayer, setCurrentLayer] = useState(mapLayers.light);
-  const [toastVisible, setToastVisible] = useState(false);
+  const [toast, setToast] = useState({ isVisible: false, message: "" });
   const [map, setMap] = useState(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newMarkerInfo, setNewMarkerInfo] = useState(null);
+  const [votedItems, setVotedItems] = useState({});
 
-  const defaultCenter = [14.72026, 120.93051];
-  const zoom = 15;
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [polygonPoints, setPolygonPoints] = useState([]);
+
+  const defaultCenter = [14.589615, 121.065289];
+  const zoom = 6;
 
   useEffect(() => {
     const listeners = [];
-
     const setupListeners = async () => {
       try {
         const unsubReports = await getAllReports(setReports, console.error);
@@ -718,29 +865,39 @@ export default function MapPage() {
       }
     };
 
-    setupListeners();
-
+    if (user) {
+      setupListeners();
+    }
     return () => {
       listeners.forEach((unsub) => unsub());
     };
-  }, []);
+  }, [user]);
 
   const allMarkers = useMemo(() => {
-    const reportMarkers = reports
+    const visibleReports = reports.filter(
+      (r) => isAdmin || r.approvalStatus === "approved"
+    );
+    const visibleOutages = outages.filter(
+      (o) => isAdmin || o.approvalStatus === "approved"
+    );
+
+    const reportMarkers = visibleReports
       .filter((r) => r.location?.latitude && r.location?.longitude)
       .map((r) => ({
         ...r,
         id: r.id,
         pos: { lat: r.location.latitude, lng: r.location.longitude },
+        poly: r.geopoints?.map((p) => [p.latitude, p.longitude]) || [],
         type: "report",
       }));
 
-    const hazardMarkers = outages
+    const hazardMarkers = visibleOutages
       .filter((o) => o.location?.latitude && o.location?.longitude)
       .map((o) => ({
         ...o,
         id: o.id,
         pos: { lat: o.location.latitude, lng: o.location.longitude },
+        poly: o.geopoints?.map((p) => [p.latitude, p.longitude]) || [],
         type: "hazard",
       }));
 
@@ -750,6 +907,7 @@ export default function MapPage() {
         ...a,
         id: a.id,
         pos: { lat: a.location.latitude, lng: a.location.longitude },
+        poly: a.geopoints?.map((p) => [p.latitude, p.longitude]) || [],
         type: "announcement",
       }));
 
@@ -758,7 +916,12 @@ export default function MapPage() {
       hazard: hazardMarkers,
       announcement: announcementMarkers,
     };
-  }, [reports, outages, announcements]);
+  }, [reports, outages, announcements, isAdmin]);
+
+  const showToast = (message) => {
+    setToast({ isVisible: true, message });
+    setTimeout(() => setToast({ isVisible: false, message: "" }), 2000);
+  };
 
   const zoomIn = () => map && map.zoomIn();
   const zoomOut = () => map && map.zoomOut();
@@ -768,15 +931,39 @@ export default function MapPage() {
     setSelectedMarker(null);
   };
 
-  const openAddMarkerModal = (latlng) => {
-    setNewMarkerInfo({ pos: latlng, type: markerMode });
-    setIsModalOpen(true);
-    setMarkerMode("none");
+  const handleMapClick = (latlng, isDrawingClick) => {
+    if (isDrawingClick) {
+      setPolygonPoints((prev) => [...prev, latlng]);
+    } else {
+      setNewMarkerInfo({ pos: latlng, type: markerMode });
+      setPolygonPoints([]);
+      setIsModalOpen(true);
+      setMarkerMode("none");
+    }
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setNewMarkerInfo(null);
+    setPolygonPoints([]);
+    setIsDrawing(false);
+  };
+
+  const handleStartDrawArea = () => {
+    setIsModalOpen(false);
+    setIsDrawing(true);
+    setPolygonPoints([]);
+  };
+
+  const handleFinishDrawArea = () => {
+    setIsDrawing(false);
+    setIsModalOpen(true);
+  };
+
+  const handleCancelDrawArea = () => {
+    setIsDrawing(false);
+    setPolygonPoints([]);
+    setIsModalOpen(true);
   };
 
   const handleFormSubmit = async (type, payload) => {
@@ -795,22 +982,20 @@ export default function MapPage() {
           reporterId: user.uid,
           reporterName: firestoreUser?.displayName || user.displayName,
         });
-      } else if (type === "announcement" && userRole === "admin") {
+      } else if (type === "announcement" && isAdmin) {
         await addAnnouncement({
           ...payload,
           userId: user.uid,
         });
       }
-
-      setToastVisible(true);
-      setTimeout(() => setToastVisible(false), 1200);
+      showToast("Pin added successfully!");
     } catch (error) {
       console.error("Failed to add marker:", error);
     }
   };
 
   const handleUpvote = async () => {
-    if (!selectedMarker || !user) return;
+    if (!selectedMarker || !user || votedItems[selectedMarker.id]) return;
     const { id, type } = selectedMarker;
     try {
       if (type === "report") {
@@ -818,13 +1003,14 @@ export default function MapPage() {
       } else if (type === "hazard") {
         await incrementOutageUpvoteCount(id);
       }
+      setVotedItems((prev) => ({ ...prev, [id]: "up" }));
     } catch (error) {
       console.error("Upvote failed:", error);
     }
   };
 
   const handleDownvote = async () => {
-    if (!selectedMarker || !user) return;
+    if (!selectedMarker || !user || votedItems[selectedMarker.id]) return;
     const { id, type } = selectedMarker;
     try {
       if (type === "report") {
@@ -832,8 +1018,41 @@ export default function MapPage() {
       } else if (type === "hazard") {
         await incrementOutageDownvoteCount(id);
       }
+      setVotedItems((prev) => ({ ...prev, [id]: "down" }));
     } catch (error) {
       console.error("Downvote failed:", error);
+    }
+  };
+
+  const handleApprove = async () => {
+    if (!selectedMarker || !isAdmin) return;
+    const { id, type } = selectedMarker;
+    try {
+      if (type === "report") {
+        await updateReportApprovalStatus(id, "approved");
+      } else if (type === "hazard") {
+        await updateOutageApprovalStatus(id, "approved");
+      }
+      setSelectedMarker((prev) => ({ ...prev, approvalStatus: "approved" }));
+      showToast("Marker approved!");
+    } catch (error) {
+      console.error("Approval failed:", error);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!selectedMarker || !isAdmin) return;
+    const { id, type } = selectedMarker;
+    try {
+      if (type === "report") {
+        await updateReportApprovalStatus(id, "rejected");
+      } else if (type === "hazard") {
+        await updateOutageApprovalStatus(id, "rejected");
+      }
+      setSelectedMarker((prev) => ({ ...prev, approvalStatus: "rejected" }));
+      showToast("Marker rejected.");
+    } catch (error) {
+      console.error("Rejection failed:", error);
     }
   };
 
@@ -844,9 +1063,15 @@ export default function MapPage() {
   const handleMarkerClick = (marker) => {
     setSelectedMarker(marker);
     if (map) {
-      map.flyTo(marker.pos, map.getZoom());
+      map.flyTo(marker.pos, 15);
     }
   };
+
+  const allPolygons = [
+    ...allMarkers.report,
+    ...allMarkers.hazard,
+    ...allMarkers.announcement,
+  ].filter((m) => m.poly && m.poly.length > 2);
 
   return (
     <div className="map-page-container">
@@ -856,24 +1081,32 @@ export default function MapPage() {
         onSubmit={handleFormSubmit}
         markerInfo={newMarkerInfo}
         currentUserRole={userRole}
+        onDrawArea={handleStartDrawArea}
+        polygonPoints={polygonPoints}
       />
 
       <Sidebar
         selectedMarker={selectedMarker}
         onUpvote={handleUpvote}
         onDownvote={handleDownvote}
+        votedItems={votedItems}
+        userRole={userRole}
+        onApprove={handleApprove}
+        onReject={handleReject}
       />
 
       <main className="map-content">
         <MapContainer
           center={defaultCenter}
           zoom={zoom}
-          minZoom={3}
+          minZoom={5}
           maxZoom={18}
           style={{ height: "100%", width: "100%" }}
           zoomControl={false}
           ref={setMap}
-          className={markerMode !== "none" ? "crosshair-cursor" : ""}
+          className={
+            markerMode !== "none" || isDrawing ? "crosshair-cursor" : ""
+          }
         >
           <TileLayer
             key={currentLayer.url}
@@ -889,9 +1122,29 @@ export default function MapPage() {
           )}
 
           <MapClickHandler
-            onMapClick={openAddMarkerModal}
+            onMapClick={handleMapClick}
             markerMode={markerMode}
+            isDrawing={isDrawing}
           />
+
+          {allPolygons.map((marker) => (
+            <Polygon
+              key={marker.id}
+              positions={marker.poly}
+              pathOptions={{ ...polygonOptions[marker.type], weight: 2 }}
+            />
+          ))}
+
+          {isDrawing && polygonPoints.length > 0 && (
+            <Polygon
+              positions={polygonPoints}
+              pathOptions={{
+                color: "var(--blue-v)",
+                fillColor: "var(--blue-v)",
+                weight: 2,
+              }}
+            />
+          )}
 
           <MarkerClusterGroup
             className="report-cluster-group"
@@ -944,16 +1197,25 @@ export default function MapPage() {
           </MarkerClusterGroup>
         </MapContainer>
 
-        <Toast isVisible={toastVisible} />
+        <Toast isVisible={toast.isVisible} message={toast.message} />
 
-        <MapControls
-          markerMode={markerMode}
-          onSetMode={handleSetMarkerMode}
-          onZoomIn={zoomIn}
-          onZoomOut={zoomOut}
-          onSetLayer={handleSetLayer}
-          userRole={userRole}
-        />
+        {isDrawing && (
+          <DrawingControls
+            onFinish={handleFinishDrawArea}
+            onCancel={handleCancelDrawArea}
+          />
+        )}
+
+        {!isDrawing && (
+          <MapControls
+            markerMode={markerMode}
+            onSetMode={handleSetMarkerMode}
+            onZoomIn={zoomIn}
+            onZoomOut={zoomOut}
+            onSetLayer={handleSetLayer}
+            userRole={userRole}
+          />
+        )}
       </main>
     </div>
   );
