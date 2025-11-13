@@ -43,9 +43,7 @@ import {
   House,
   Award,
   Filter,
-  Calendar,
-  Eye,
-  EyeOff,
+  Menu,
 } from "lucide-react";
 
 import {
@@ -68,7 +66,11 @@ import {
   updateReportApprovalStatus,
   getReportImageURL,
 } from "../firebaseServices/database/reportsFunctions";
-import { listenToUserConnections } from "../firebaseServices/database/usersFunctions";
+import {
+  listenToUserConnections,
+  addReportIdToUserUpvoted,
+  addReportIdToUserDownvoted,
+} from "../firebaseServices/database/usersFunctions";
 
 import useAuth from "../firebaseServices/auth/useAuth";
 
@@ -310,7 +312,7 @@ function MarkerDetailsPanel({
           {timeCreated && (
             <p>
               <strong>
-                {isPlanned ? "Event Starts" : "Reported"}
+                Reported:
               </strong>{" "}
               {formatTimestamp(timeCreated)}
             </p>
@@ -440,13 +442,14 @@ function Sidebar({
   onApprove,
   onReject,
   onEditStatus,
+  isOpen,
 }) {
   const currentVote = selectedMarker
     ? votedItems[selectedMarker.id]
     : null;
 
   return (
-    <aside className="info-sidebar">
+    <aside className={`info-sidebar ${isOpen ? "open" : ""}`}>
       <div className="sidebar-content-wrapper">
         <div className="sidebar-section">
           {selectedMarker ? (
@@ -477,15 +480,11 @@ function AddPinModal({
   currentUserRole,
   onDrawArea,
   polygonPoints,
+  formData,
+  onFormChange,
 }) {
-  const [formData, setFormData] = useState(initialFormData);
   const [isUploading, setIsUploading] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      setFormData(initialFormData);
-    }
-  }, [isOpen]);
+  const [maxPoints, setMaxPoints] = useState(3);
 
   if (!isOpen || !markerInfo) return null;
 
@@ -495,21 +494,25 @@ function AddPinModal({
     currentUserRole === "admin" &&
     formData.isPlanned;
 
-  const handleFormChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
-
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setFormData((prev) => ({
-        ...prev,
+      onFormChange({
+        ...formData,
         imageFile: e.target.files[0],
-      }));
+      });
     }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    onFormChange({
+      ...formData,
+      [name]: type === "checkbox" ? checked : value,
+    });
+  };
+
+  const handleStartDrawing = () => {
+    onDrawArea(maxPoints);
   };
 
   const handleSubmit = async (e) => {
@@ -580,7 +583,7 @@ function AddPinModal({
               id="title"
               name="title"
               value={formData.title}
-              onChange={handleFormChange}
+              onChange={handleInputChange}
               required
               disabled={isUploading}
             />
@@ -592,7 +595,7 @@ function AddPinModal({
               id="description"
               name="description"
               value={formData.description}
-              onChange={handleFormChange}
+              onChange={handleInputChange}
               rows="4"
               required
               disabled={isUploading}
@@ -620,7 +623,7 @@ function AddPinModal({
                 id="isPlanned"
                 name="isPlanned"
                 checked={formData.isPlanned}
-                onChange={handleFormChange}
+                onChange={handleInputChange}
                 disabled={isUploading}
               />
               <label htmlFor="isPlanned">Is this a planned outage?</label>
@@ -636,7 +639,7 @@ function AddPinModal({
                   id="startTime"
                   name="startTime"
                   value={formData.startTime}
-                  onChange={handleFormChange}
+                  onChange={handleInputChange}
                   disabled={isUploading}
                 />
               </div>
@@ -647,7 +650,7 @@ function AddPinModal({
                   id="endTime"
                   name="endTime"
                   value={formData.endTime}
-                  onChange={handleFormChange}
+                  onChange={handleInputChange}
                   disabled={isUploading}
                 />
               </div>
@@ -655,17 +658,28 @@ function AddPinModal({
           )}
 
           {(type === "announcement" || isPlannedHazard) && (
-            <div className="form-group">
+            <div className="form-group draw-area-group">
               <label>Affected Area</label>
-              <button
-                type="button"
-                className="button-secondary"
-                onClick={onDrawArea}
-                disabled={isUploading}
-              >
-                <Edit size={16} />
-                {polygonPoints.length > 0 ? `Redraw Area (${polygonPoints.length} points)` : "Draw Area"}
-              </button>
+              <div className="draw-area-controls">
+                <input
+                  type="number"
+                  min="3"
+                  max="10"
+                  value={maxPoints}
+                  onChange={(e) => setMaxPoints(parseInt(e.target.value) || 3)}
+                  className="point-input"
+                  disabled={isUploading}
+                />
+                <button
+                  type="button"
+                  className="button-secondary"
+                  onClick={handleStartDrawing}
+                  disabled={isUploading}
+                >
+                  <Edit size={16} />
+                  {polygonPoints.length > 0 ? `Redraw Area (${polygonPoints.length} pts)` : "Draw Area"}
+                </button>
+              </div>
             </div>
           )}
 
@@ -701,8 +715,17 @@ function EditStatusModal({ isOpen, onClose, marker, onStatusUpdate }) {
   useEffect(() => {
     if (marker) {
       setResponseStatus(marker.responseStatus || "not started");
-      setStartTime(marker.startTime ? new Date(marker.startTime.toDate()).toISOString().slice(0, 16) : "");
-      setEndTime(marker.endTime ? new Date(marker.endTime.toDate()).toISOString().slice(0, 16) : "");
+
+      const formatForInput = (ts) => {
+        if (!ts) return "";
+        const date = ts.toDate ? ts.toDate() : new Date(ts);
+        return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+          .toISOString()
+          .slice(0, 16);
+      };
+
+      setStartTime(formatForInput(marker.startTime));
+      setEndTime(formatForInput(marker.endTime));
     }
   }, [marker]);
 
@@ -713,7 +736,7 @@ function EditStatusModal({ isOpen, onClose, marker, onStatusUpdate }) {
     setIsLoading(true);
 
     const dates = {
-      startTime: startTime ? new Date(startTime) : null,
+      startTime: startTime ? new Date(startTime) : serverTimestamp(),
       endTime: endTime ? new Date(endTime) : null,
     };
 
@@ -721,8 +744,13 @@ function EditStatusModal({ isOpen, onClose, marker, onStatusUpdate }) {
       dates.endTime = serverTimestamp();
     }
     
-    if (responseStatus === "in progress" && !dates.startTime) {
-        dates.startTime = serverTimestamp();
+    if (responseStatus === "in progress" && !dates.startTime && !marker.startTime) {
+      dates.startTime = serverTimestamp();
+    }
+    
+    if (responseStatus === 'not started') {
+        dates.startTime = null;
+        dates.endTime = null;
     }
 
     try {
@@ -773,7 +801,7 @@ function EditStatusModal({ isOpen, onClose, marker, onStatusUpdate }) {
             </select>
           </div>
 
-          {(isUnplanned || (isReport && responseStatus === 'fixed')) && (
+          {(isUnplanned || isReport) && (
             <div className="form-group">
               <label htmlFor="startTime">
                 {isUnplanned ? "Discovered Date" : "Start Date"}
@@ -789,7 +817,7 @@ function EditStatusModal({ isOpen, onClose, marker, onStatusUpdate }) {
             </div>
           )}
 
-          {(isUnplanned || (isReport && responseStatus === 'fixed')) && (
+          {(isUnplanned || isReport) && (
             <div className="form-group">
               <label htmlFor="endTime">
                 {isUnplanned ? "Fixed Date" : "End Date"}
@@ -1080,15 +1108,20 @@ function MapControls({
   );
 }
 
-function DrawingControls({ onFinish, onCancel }) {
+function DrawingControls({ onFinish, onCancel, pointCount, maxPoints }) {
   return (
     <div className="drawing-controls">
       <div className="drawing-notice">
         <Edit size={16} />
         <strong>Drawing Mode:</strong> Click to add points
+        ({pointCount}/{maxPoints})
       </div>
       <div className="drawing-buttons">
-        <button className="button-primary" onClick={onFinish}>
+        <button
+          className="button-primary"
+          onClick={onFinish}
+          disabled={pointCount < 3}
+        >
           Finish Drawing
         </button>
         <button className="button-secondary" onClick={onCancel}>
@@ -1134,9 +1167,15 @@ export default function MapPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newMarkerInfo, setNewMarkerInfo] = useState(null);
   const [votedItems, setVotedItems] = useState({});
+  const [formData, setFormData] = useState(initialFormData);
 
   const [isDrawing, setIsDrawing] = useState(false);
   const [polygonPoints, setPolygonPoints] = useState([]);
+  const [maxPolygonPoints, setMaxPolygonPoints] = useState(0);
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState(
+    window.innerWidth > 768
+  );
 
   const [filters, setFilters] = useState({
     report: true,
@@ -1181,6 +1220,23 @@ export default function MapPage() {
       listeners.forEach((unsub) => unsub());
     };
   }, [user]);
+
+  useEffect(() => {
+    if (firestoreUser) {
+      const votes = {};
+      if (firestoreUser.reportIdsUpvoted) {
+        for (const reportId in firestoreUser.reportIdsUpvoted) {
+          votes[reportId] = "up";
+        }
+      }
+      if (firestoreUser.reportIdsDownvoted) {
+        for (const reportId in firestoreUser.reportIdsDownvoted) {
+          votes[reportId] = "down";
+        }
+      }
+      setVotedItems(votes);
+    }
+  }, [firestoreUser]);
 
   const allMarkers = useMemo(() => {
     const visibleReports = reports.filter(
@@ -1258,14 +1314,25 @@ export default function MapPage() {
   const handleSetMarkerMode = (mode) => {
     setMarkerMode(mode);
     setSelectedMarker(null);
+    if (window.innerWidth <= 768) {
+      setIsSidebarOpen(false);
+    }
   };
 
   const handleMapClick = (latlng, isDrawingClick) => {
     if (isDrawingClick) {
-      setPolygonPoints((prev) => [...prev, latlng]);
+      if (polygonPoints.length < maxPolygonPoints - 1) {
+        setPolygonPoints((prev) => [...prev, latlng]);
+      } else {
+        setPolygonPoints((prev) => [...prev, latlng]);
+        setIsDrawing(false);
+        setIsModalOpen(true);
+        setMaxPolygonPoints(0);
+      }
     } else {
       setNewMarkerInfo({ pos: latlng, type: markerMode });
       setPolygonPoints([]);
+      setFormData(initialFormData);
       setIsModalOpen(true);
       setMarkerMode("none");
     }
@@ -1276,12 +1343,14 @@ export default function MapPage() {
     setNewMarkerInfo(null);
     setPolygonPoints([]);
     setIsDrawing(false);
+    setFormData(initialFormData);
   };
 
-  const handleStartDrawArea = () => {
+  const handleStartDrawArea = (maxPoints) => {
     setIsModalOpen(false);
     setIsDrawing(true);
     setPolygonPoints([]);
+    setMaxPolygonPoints(maxPoints);
   };
 
   const handleFinishDrawArea = () => {
@@ -1324,31 +1393,65 @@ export default function MapPage() {
   };
 
   const handleUpvote = async () => {
-    if (!selectedMarker || !user || votedItems[selectedMarker.id]) return;
+    if (!selectedMarker || !user || votedItems[selectedMarker.id] === "up")
+      return;
     const { id, type } = selectedMarker;
+    const originalMarker = { ...selectedMarker };
+    const originalVotedItems = { ...votedItems };
+
+    const isSwitching = votedItems[id] === "down";
+
+    setVotedItems((prev) => ({ ...prev, [id]: "up" }));
+    setSelectedMarker((prev) => ({
+      ...prev,
+      upvoteCount: (prev.upvoteCount || 0) + 1,
+      downvoteCount: isSwitching
+        ? Math.max(0, (prev.downvoteCount || 0) - 1)
+        : prev.downvoteCount || 0,
+    }));
+
     try {
+      await addReportIdToUserUpvoted(user.uid, id);
       if (type === "report") {
         await incrementReportUpvoteCount(id);
       } else if (type === "hazard") {
         await incrementOutageUpvoteCount(id);
       }
-      setVotedItems((prev) => ({ ...prev, [id]: "up" }));
     } catch (error) {
+      setVotedItems(originalVotedItems);
+      setSelectedMarker(originalMarker);
       console.error("Upvote failed:", error);
     }
   };
 
   const handleDownvote = async () => {
-    if (!selectedMarker || !user || votedItems[selectedMarker.id]) return;
+    if (!selectedMarker || !user || votedItems[selectedMarker.id] === "down")
+      return;
     const { id, type } = selectedMarker;
+    const originalMarker = { ...selectedMarker };
+    const originalVotedItems = { ...votedItems };
+
+    const isSwitching = votedItems[id] === "up";
+
+    setVotedItems((prev) => ({ ...prev, [id]: "down" }));
+    setSelectedMarker((prev) => ({
+      ...prev,
+      downvoteCount: (prev.downvoteCount || 0) + 1,
+      upvoteCount: isSwitching
+        ? Math.max(0, (prev.upvoteCount || 0) - 1)
+        : prev.upvoteCount || 0,
+    }));
+
     try {
+      await addReportIdToUserDownvoted(user.uid, id);
       if (type === "report") {
         await incrementReportDownvoteCount(id);
       } else if (type === "hazard") {
         await incrementOutageDownvoteCount(id);
       }
-      setVotedItems((prev) => ({ ...prev, [id]: "down" }));
     } catch (error) {
+      setVotedItems(originalVotedItems);
+      setSelectedMarker(originalMarker);
       console.error("Downvote failed:", error);
     }
   };
@@ -1391,6 +1494,9 @@ export default function MapPage() {
 
   const handleMarkerClick = (marker) => {
     setSelectedMarker(marker);
+    if (window.innerWidth <= 768) {
+      setIsSidebarOpen(true);
+    }
     if (map) {
       map.flyTo(marker.pos, 15);
     }
@@ -1406,25 +1512,18 @@ export default function MapPage() {
 
   const handleUpdateMarkerStatus = async (marker, newStatus, dates) => {
     const { id, type } = marker;
-    const payload = { ...dates };
+    const payload = { ...dates, responseStatus: newStatus };
 
     try {
+      let docRef;
       if (type === "report") {
-        await updateReportApprovalStatus(id, newStatus);
-        const reportRef = doc(db, "reports", id);
-        if (newStatus === "fixed" && payload.endTime) {
-          await updateDoc(reportRef, { endTime: payload.endTime });
-        } else if (newStatus === "in progress" && payload.startTime) {
-          await updateDoc(reportRef, { startTime: payload.startTime });
-        }
+        docRef = doc(db, "reports", id);
       } else if (type === "hazard") {
-        await updateOutageApprovalStatus(id, newStatus);
-        const outageRef = doc(db, "outages", id);
-        if (newStatus === "fixed" && payload.endTime) {
-          await updateDoc(outageRef, { endTime: payload.endTime });
-        } else if (newStatus === "in progress" && payload.startTime) {
-          await updateDoc(outageRef, { startTime: payload.startTime });
-        }
+        docRef = doc(db, "outages", id);
+      }
+
+      if (docRef) {
+        await updateDoc(docRef, payload);
       }
 
       setSelectedMarker((prev) => ({
@@ -1455,6 +1554,8 @@ export default function MapPage() {
         currentUserRole={userRole}
         onDrawArea={handleStartDrawArea}
         polygonPoints={polygonPoints}
+        formData={formData}
+        onFormChange={setFormData}
       />
 
       <EditStatusModal
@@ -1465,6 +1566,7 @@ export default function MapPage() {
       />
 
       <Sidebar
+        isOpen={isSidebarOpen}
         selectedMarker={selectedMarker}
         onUpvote={handleUpvote}
         onDownvote={handleDownvote}
@@ -1476,6 +1578,12 @@ export default function MapPage() {
       />
 
       <main className="map-content">
+        <button
+          className="sidebar-toggle-button"
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        >
+          {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
         <MapContainer
           center={defaultCenter}
           zoom={zoom}
@@ -1601,6 +1709,8 @@ export default function MapPage() {
           <DrawingControls
             onFinish={handleFinishDrawArea}
             onCancel={handleCancelDrawArea}
+            pointCount={polygonPoints.length}
+            maxPoints={maxPolygonPoints}
           />
         )}
 

@@ -23,7 +23,7 @@ export async function getUserByUid(userId) {
       throw new Error(`User with UID ${userId} does not exist.`);
     }
 
-    return { userId, ...userDoc.data() };
+    return { userId, ...userDoc.data  () };
   } catch (error) {
     console.error("Error fetching user data:", error);
     throw error;
