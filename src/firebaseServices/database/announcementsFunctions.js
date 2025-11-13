@@ -103,3 +103,25 @@ export async function getAllAnnouncements(onData, onError) {
 
     return unsubscribe;
 }
+
+/**
+ * Deletes an announcement document from the `announcements` collection.
+ *
+ * @param {string} announcementId - The ID of the announcement document to delete.
+ * @returns {Promise<void>} Resolves when the document is successfully deleted.
+ * @throws {Error} If the Firestore operation fails or the announcementId is invalid.
+ */
+export async function deleteAnnouncement(announcementId) {
+  if (!announcementId || typeof announcementId !== "string") {
+    throw new Error("Valid announcementId is required");
+  }
+
+  try {
+    const docRef = doc(db, "announcements", announcementId);
+    await deleteDoc(docRef);
+    console.log(`Announcement with ID ${announcementId} deleted successfully.`);
+  } catch (error) {
+    console.error("Error deleting announcement:", error);
+    throw error;
+  }
+}

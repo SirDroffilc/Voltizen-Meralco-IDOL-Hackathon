@@ -108,3 +108,25 @@ export async function getAllOutages(onData, onError) {
 
     return unsubscribe;
 }
+
+/**
+ * Deletes an outage document from the `outages` collection.
+ *
+ * @param {string} outageId - The ID of the outage document to delete.
+ * @returns {Promise<void>} Resolves when the document is successfully deleted.
+ * @throws {Error} If the Firestore operation fails or the outageId is invalid.
+ */
+export async function deleteOutage(outageId) {
+  if (!outageId || typeof outageId !== "string") {
+    throw new Error("Valid outageId is required");
+  }
+
+  try {
+    const docRef = doc(db, "outages", outageId);
+    await deleteDoc(docRef);
+    console.log(`Outage with ID ${outageId} deleted successfully.`);
+  } catch (error) {
+    console.error("Error deleting outage:", error);
+    throw error;
+  }
+}

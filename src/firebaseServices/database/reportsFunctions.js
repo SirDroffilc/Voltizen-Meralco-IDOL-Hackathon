@@ -108,3 +108,25 @@ export async function getAllReports(onData, onError) {
 
     return unsubscribe;
 }
+
+/**
+ * Deletes a report document from the `reports` collection.
+ *
+ * @param {string} reportId - The ID of the report document to delete.
+ * @returns {Promise<void>} Resolves when the document is successfully deleted.
+ * @throws {Error} If the Firestore operation fails or the reportId is invalid.
+ */
+export async function deleteReport(reportId) {
+  if (!reportId || typeof reportId !== "string") {
+    throw new Error("Valid reportId is required");
+  }
+
+  try {
+    const docRef = doc(db, "reports", reportId);
+    await deleteDoc(docRef);
+    console.log(`Report with ID ${reportId} deleted successfully.`);
+  } catch (error) {
+    console.error("Error deleting report:", error);
+    throw error;
+  }
+}

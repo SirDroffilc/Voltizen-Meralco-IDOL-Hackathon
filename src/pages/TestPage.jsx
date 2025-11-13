@@ -3,6 +3,7 @@ import { getUserByUid, addDummyUserWithInventory, connectTwoUsers, disconnectTwo
 import { addReport } from "../firebaseServices/database/reportsFunctions";
 import { addOutage } from "../firebaseServices/database/outagesFunctions";
 import { addAnnouncement } from "../firebaseServices/database/announcementsFunctions";
+import { GeoPoint } from "firebase/firestore"; // Import GeoPoint
 
 function TestPage() {
   const [queryUser, setQueryUser] = useState(null);
@@ -33,6 +34,7 @@ function TestPage() {
     locationLng: "",
     approvalStatus: "",
     responseStatus: "",
+    geopoints: "",
   });
   const [announcementData, setAnnouncementData] = useState({
     userId: "",
@@ -42,6 +44,7 @@ function TestPage() {
     locationLng: "",
     startTime: "",
     endTime: "",
+    geopoints: [],
   });
 
   async function getUser(event) {
@@ -134,11 +137,13 @@ function TestPage() {
   async function onSubmitAddOutage(event) {
     event.preventDefault();
     try {
-      const { reporterId, reporterName, title, description, isPlanned, locationLat, locationLng, approvalStatus, responseStatus } = outageData;
+      const { reporterId, reporterName, title, description, isPlanned, locationLat, locationLng, approvalStatus, responseStatus, geopoints } = outageData;
       const location =
         locationLat && locationLng
           ? { lat: parseFloat(locationLat), lng: parseFloat(locationLng) }
           : null;
+
+      const parsedGeopoints = geopoints.map(({ lat, lng }) => new GeoPoint(lat, lng));
 
       const result = await addOutage({
         reporterId,
@@ -149,6 +154,7 @@ function TestPage() {
         location,
         approvalStatus,
         responseStatus,
+        geopoints: parsedGeopoints,
       });
       console.log(`Outage Added: ID ${result.id}`);
     } catch (err) {
@@ -159,11 +165,13 @@ function TestPage() {
   async function onSubmitAddAnnouncement(event) {
     event.preventDefault();
     try {
-      const { userId, title, description, locationLat, locationLng, startTime, endTime } = announcementData;
+      const { userId, title, description, locationLat, locationLng, startTime, endTime, geopoints } = announcementData;
       const location =
         locationLat && locationLng
           ? { lat: parseFloat(locationLat), lng: parseFloat(locationLng) }
           : null;
+
+      const parsedGeopoints = geopoints.map(({ lat, lng }) => new GeoPoint(lat, lng));
 
       const result = await addAnnouncement({
         userId,
@@ -172,6 +180,7 @@ function TestPage() {
         location,
         startTime,
         endTime,
+        geopoints: parsedGeopoints,
       });
       console.log(`Announcement Added: ID ${result.id}`);
     } catch (err) {
@@ -275,6 +284,7 @@ function TestPage() {
           value={reportData.reporterId}
           onChange={(e) => setReportData({ ...reportData, reporterId: e.target.value })}
           placeholder="Reporter ID"
+          required
         />
         <label>Reporter Name</label>
         <input
@@ -289,49 +299,55 @@ function TestPage() {
           value={reportData.title}
           onChange={(e) => setReportData({ ...reportData, title: e.target.value })}
           placeholder="Title"
+          required
         />
         <label>Description</label>
-        <input
-          type="text"
+        <textarea
           value={reportData.description}
           onChange={(e) => setReportData({ ...reportData, description: e.target.value })}
           placeholder="Description"
-        />
+        ></textarea>
         <label>Image URL</label>
         <input
-          type="text"
+          type="url"
           value={reportData.imageURL}
           onChange={(e) => setReportData({ ...reportData, imageURL: e.target.value })}
           placeholder="Image URL"
         />
         <label>Location Latitude</label>
         <input
-          type="text"
+          type="number"
+          step="any"
           value={reportData.locationLat}
           onChange={(e) => setReportData({ ...reportData, locationLat: e.target.value })}
           placeholder="Latitude"
         />
         <label>Location Longitude</label>
         <input
-          type="text"
+          type="number"
+          step="any"
           value={reportData.locationLng}
           onChange={(e) => setReportData({ ...reportData, locationLng: e.target.value })}
           placeholder="Longitude"
         />
         <label>Approval Status</label>
-        <input
-          type="text"
+        <select
           value={reportData.approvalStatus}
           onChange={(e) => setReportData({ ...reportData, approvalStatus: e.target.value })}
-          placeholder="Approval Status"
-        />
+        >
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+        </select>
         <label>Response Status</label>
-        <input
-          type="text"
+        <select
           value={reportData.responseStatus}
           onChange={(e) => setReportData({ ...reportData, responseStatus: e.target.value })}
-          placeholder="Response Status"
-        />
+        >
+          <option value="not started">Not Started</option>
+          <option value="in progress">In Progress</option>
+          <option value="fixed">Fixed</option>
+        </select>
         <input type="submit" value="Add Report" />
       </form>
 
@@ -345,6 +361,7 @@ function TestPage() {
           value={outageData.reporterId}
           onChange={(e) => setOutageData({ ...outageData, reporterId: e.target.value })}
           placeholder="Reporter ID"
+          required
         />
         <label>Reporter Name</label>
         <input
@@ -359,14 +376,14 @@ function TestPage() {
           value={outageData.title}
           onChange={(e) => setOutageData({ ...outageData, title: e.target.value })}
           placeholder="Title"
+          required
         />
         <label>Description</label>
-        <input
-          type="text"
+        <textarea
           value={outageData.description}
           onChange={(e) => setOutageData({ ...outageData, description: e.target.value })}
           placeholder="Description"
-        />
+        ></textarea>
         <label>Is Planned</label>
         <input
           type="checkbox"
@@ -375,32 +392,106 @@ function TestPage() {
         />
         <label>Location Latitude</label>
         <input
-          type="text"
+          type="number"
+          step="any"
           value={outageData.locationLat}
           onChange={(e) => setOutageData({ ...outageData, locationLat: e.target.value })}
           placeholder="Latitude"
         />
         <label>Location Longitude</label>
         <input
-          type="text"
+          type="number"
+          step="any"
           value={outageData.locationLng}
           onChange={(e) => setOutageData({ ...outageData, locationLng: e.target.value })}
           placeholder="Longitude"
         />
-        <label>Approval Status</label>
+        <label>Geolocation Lat 1</label>
         <input
-          type="text"
+          type="number"
+          step="any"
+          value={outageData.geopoints[0]?.lat || ""}
+          onChange={(e) => {
+            const updatedGeopoints = [...(outageData.geopoints || [])];
+            updatedGeopoints[0] = { ...updatedGeopoints[0], lat: parseFloat(e.target.value) };
+            setOutageData({ ...outageData, geopoints: updatedGeopoints });
+          }}
+        />
+        <label>Geolocation Lng 1</label>
+        <input
+          type="number"
+          step="any"
+          value={outageData.geopoints[0]?.lng || ""}
+          onChange={(e) => {
+            const updatedGeopoints = [...(outageData.geopoints || [])];
+            updatedGeopoints[0] = { ...updatedGeopoints[0], lng: parseFloat(e.target.value) };
+            setOutageData({ ...outageData, geopoints: updatedGeopoints });
+          }}
+        />
+
+        <label>Geolocation Lat 2</label>
+        <input
+          type="number"
+          step="any"
+          value={outageData.geopoints[1]?.lat || ""}
+          onChange={(e) => {
+            const updatedGeopoints = [...(outageData.geopoints || [])];
+            updatedGeopoints[1] = { ...updatedGeopoints[1], lat: parseFloat(e.target.value) };
+            setOutageData({ ...outageData, geopoints: updatedGeopoints });
+          }}
+        />
+        <label>Geolocation Lng 2</label>
+        <input
+          type="number"
+          step="any"
+          value={outageData.geopoints[1]?.lng || ""}
+          onChange={(e) => {
+            const updatedGeopoints = [...(outageData.geopoints || [])];
+            updatedGeopoints[1] = { ...updatedGeopoints[1], lng: parseFloat(e.target.value) };
+            setOutageData({ ...outageData, geopoints: updatedGeopoints });
+          }}
+        />
+
+        <label>Geolocation Lat 3</label>
+        <input
+          type="number"
+          step="any"
+          value={outageData.geopoints[2]?.lat || ""}
+          onChange={(e) => {
+            const updatedGeopoints = [...(outageData.geopoints || [])];
+            updatedGeopoints[2] = { ...updatedGeopoints[2], lat: parseFloat(e.target.value) };
+            setOutageData({ ...outageData, geopoints: updatedGeopoints });
+          }}
+        />
+        <label>Geolocation Lng 3</label>
+        <input
+          type="number"
+          step="any"
+          value={outageData.geopoints[2]?.lng || ""}
+          onChange={(e) => {
+            const updatedGeopoints = [...(outageData.geopoints || [])];
+            updatedGeopoints[2] = { ...updatedGeopoints[2], lng: parseFloat(e.target.value) };
+            setOutageData({ ...outageData, geopoints: updatedGeopoints });
+          }}
+        />
+        <label>Approval Status</label>
+        <select
           value={outageData.approvalStatus}
           onChange={(e) => setOutageData({ ...outageData, approvalStatus: e.target.value })}
-          placeholder="Approval Status"
-        />
+        >
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+        </select>
         <label>Response Status</label>
-        <input
-          type="text"
+        <select
           value={outageData.responseStatus}
           onChange={(e) => setOutageData({ ...outageData, responseStatus: e.target.value })}
-          placeholder="Response Status"
-        />
+        >
+          <option value="not started">Not Started</option>
+          <option value="in progress">In Progress</option>
+          <option value="fixed">Fixed</option>
+        </select>
         <input type="submit" value="Add Outage" />
       </form>
 
@@ -414,6 +505,7 @@ function TestPage() {
           value={announcementData.userId}
           onChange={(e) => setAnnouncementData({ ...announcementData, userId: e.target.value })}
           placeholder="User ID"
+          required
         />
         <label>Title</label>
         <input
@@ -421,41 +513,107 @@ function TestPage() {
           value={announcementData.title}
           onChange={(e) => setAnnouncementData({ ...announcementData, title: e.target.value })}
           placeholder="Title"
+          required
         />
         <label>Description</label>
-        <input
-          type="text"
+        <textarea
           value={announcementData.description}
           onChange={(e) => setAnnouncementData({ ...announcementData, description: e.target.value })}
           placeholder="Description"
-        />
+        ></textarea>
         <label>Location Latitude</label>
         <input
-          type="text"
+          type="number"
+          step="any"
           value={announcementData.locationLat}
           onChange={(e) => setAnnouncementData({ ...announcementData, locationLat: e.target.value })}
           placeholder="Latitude"
         />
         <label>Location Longitude</label>
         <input
-          type="text"
+          type="number"
+          step="any"
           value={announcementData.locationLng}
           onChange={(e) => setAnnouncementData({ ...announcementData, locationLng: e.target.value })}
           placeholder="Longitude"
         />
         <label>Start Time</label>
         <input
-          type="text"
+          type="datetime-local"
           value={announcementData.startTime}
           onChange={(e) => setAnnouncementData({ ...announcementData, startTime: e.target.value })}
-          placeholder="Start Time"
         />
         <label>End Time</label>
         <input
-          type="text"
+          type="datetime-local"
           value={announcementData.endTime}
           onChange={(e) => setAnnouncementData({ ...announcementData, endTime: e.target.value })}
-          placeholder="End Time"
+        />
+        <label>Geolocation Lat 1</label>
+        <input
+          type="number"
+          step="any"
+          value={announcementData.geopoints[0]?.lat || ""}
+          onChange={(e) => {
+            const updatedGeopoints = [...(announcementData.geopoints || [])];
+            updatedGeopoints[0] = { ...updatedGeopoints[0], lat: parseFloat(e.target.value) };
+            setAnnouncementData({ ...announcementData, geopoints: updatedGeopoints });
+          }}
+        />
+        <label>Geolocation Lng 1</label>
+        <input
+          type="number"
+          step="any"
+          value={announcementData.geopoints[0]?.lng || ""}
+          onChange={(e) => {
+            const updatedGeopoints = [...(announcementData.geopoints || [])];
+            updatedGeopoints[0] = { ...updatedGeopoints[0], lng: parseFloat(e.target.value) };
+            setAnnouncementData({ ...announcementData, geopoints: updatedGeopoints });
+          }}
+        />
+        <label>Geolocation Lat 2</label>
+        <input
+          type="number"
+          step="any"
+          value={announcementData.geopoints[1]?.lat || ""}
+          onChange={(e) => {
+            const updatedGeopoints = [...(announcementData.geopoints || [])];
+            updatedGeopoints[1] = { ...updatedGeopoints[1], lat: parseFloat(e.target.value) };
+            setAnnouncementData({ ...announcementData, geopoints: updatedGeopoints });
+          }}
+        />
+        <label>Geolocation Lng 2</label>
+        <input
+          type="number"
+          step="any"
+          value={announcementData.geopoints[1]?.lng || ""}
+          onChange={(e) => {
+            const updatedGeopoints = [...(announcementData.geopoints || [])];
+            updatedGeopoints[1] = { ...updatedGeopoints[1], lng: parseFloat(e.target.value) };
+            setAnnouncementData({ ...announcementData, geopoints: updatedGeopoints });
+          }}
+        />
+        <label>Geolocation Lat 3</label>
+        <input
+          type="number"
+          step="any"
+          value={announcementData.geopoints[2]?.lat || ""}
+          onChange={(e) => {
+            const updatedGeopoints = [...(announcementData.geopoints || [])];
+            updatedGeopoints[2] = { ...updatedGeopoints[2], lat: parseFloat(e.target.value) };
+            setAnnouncementData({ ...announcementData, geopoints: updatedGeopoints });
+          }}
+        />
+        <label>Geolocation Lng 3</label>
+        <input
+          type="number"
+          step="any"
+          value={announcementData.geopoints[2]?.lng || ""}
+          onChange={(e) => {
+            const updatedGeopoints = [...(announcementData.geopoints || [])];
+            updatedGeopoints[2] = { ...updatedGeopoints[2], lng: parseFloat(e.target.value) };
+            setAnnouncementData({ ...announcementData, geopoints: updatedGeopoints });
+          }}
         />
         <input type="submit" value="Add Announcement" />
       </form>
