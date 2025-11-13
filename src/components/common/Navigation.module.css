@@ -1,11 +1,12 @@
 .navbar{
-    height: auto;
+    height: 10vh;
     background-color: transparent;
     white-space: nowrap;
     display: flex;
     justify-content: space-between;
     padding: 1rem 2rem;
     align-self: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .logoContainer{
