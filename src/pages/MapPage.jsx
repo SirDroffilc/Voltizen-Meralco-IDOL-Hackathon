@@ -17,7 +17,7 @@ import MarkerClusterGroup from "react-leaflet-markercluster";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import voltizenLogo from "../assets/voltizen-logo.png";
-
+import { Link } from "react-router-dom";
 import "./MapPage.css";
 import {
   Plus,
@@ -252,6 +252,8 @@ function MarkerDetailsPanel({
     displayName,
     credibilityScore,
     profileImageUrl,
+    consumptionSharingPrivacy,
+    id,
   } = marker;
 
   const headerClass =
@@ -379,6 +381,14 @@ function MarkerDetailsPanel({
           <strong>Longitude:</strong> {pos.lng.toFixed(5)}
         </p>
       </div>
+
+      {type === "connection" && ["public", "connectionsOnly"].includes(consumptionSharingPrivacy) && (
+        <div className="sidebar-action-button-container">
+          <Link to={`/connections/${id}/inventory`}>
+            <button className="button-primary view-inventory-btn">See Inventory</button>
+          </Link>
+        </div>
+      )}
 
       {isAdmin && type !== "announcement" && type !== "connection" && (
         <div className="admin-approval-controls">
