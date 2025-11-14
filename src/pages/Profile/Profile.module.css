@@ -1,328 +1,405 @@
 .profileContainer {
-    max-width: 1100px;
-    width: 95%;
-    margin: 28px auto;
-    display: grid;
-    grid-template-columns: 1fr 340px;
-    gap: 28px;
-    align-items: start;
-    background: linear-gradient(180deg, var(--sidebar-bg) 0%, rgba(255,255,255,0.02) 100%);
-    border: 1px solid var(--border-color);
-    border-radius: 14px;
-    padding: 22px;
-    box-shadow: 0 10px 30px rgba(2,6,23,0.06);
+  max-width: 900px;
+  width: 95%;
+  margin: 28px auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  background: linear-gradient(180deg, var(--sidebar-bg) 0%, rgba(255,255,255,0.02) 100%);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 32px;
+  box-shadow: 0 10px 30px rgba(2,6,23,0.06);
+  position: relative;
 }
 
-
-
-.userInfo {
-    display: flex;
-    align-items: flex-start;
-    gap: 20px;
-    font-size: 1rem;
+.profileHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
-
-.userInfo .profileImage {
-    width: 140px;
-    height: 140px;
-    border-radius: 50%;
-    border: 4px solid var(--primary-500);
-    object-fit: cover;
-    box-shadow: 0 6px 18px rgba(16, 24, 40, 0.06);
+.profileImage {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  border: 4px solid var(--primary-500);
+  object-fit: cover;
+  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.06);
 }
 
-.userInfo h1 {
-    margin: 0 0 6px 0;
-    font-size: 1.6rem;
-    color: var(--primary-700);
-    letter-spacing: -0.2px;
+.displayName {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--primary-500);
+  text-align: center;
 }
 
-.userInfo p {
-    margin: 2px 0;
-    color: var(--sidebar-text-muted, #6b7280);
-    font-size: 0.95rem;
-    font-family: 'Montserrat';
+.infoSection {
+  width: 100%;
+  max-width: 600px;
+  padding: 24px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background-color: var(--map-bg);
 }
 
-.consumptionInfo {
-    font-size: 0.95rem;
-    background-color: transparent;
-    border-radius: 12px;
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+.infoTitle {
+  font-family: "Orbitron", sans-serif;
+  font-size: 1.25rem;
+  margin: 0 0 16px 0;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--primary-300);
+  color: var(--sidebar-header);
 }
 
-.consumptionInfo p {
-    margin: 0;
-    color: var(--secondary-darkest);
-    font-weight: 600;
-    background-color: var(--secondary-light);
-    border-radius: 8px;
-    padding: 6px 8px;
+.infoItem {
+  margin: 10px 0;
+  color: var(--sidebar-text);
+  font-size: 1rem;
 }
 
-
-
-.consumptionInfo ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: grid;
-    row-gap: 8px;
+.infoItem strong {
+  color: var(--sidebar-text-muted);
+  margin-right: 8px;
 }
 
-.consumptionInfo .lastReportTime,
-.consumptionInfo li {
-    padding: 3px 10px;
-    background: hsla(0, 0%, 100%, 0.03);
+.buttonContainer {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  width: 100%;
+  justify-content: flex-end;
 }
 
 .localSharingBtn,
-.signoutBtn{
-    margin-top: 10px;
-    padding: 10px 16px;
-    background-color: var(--primary-500);
-    color: var(--white);
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: rem;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
-    box-shadow: 0 4px 12px rgba(16,24,40,0.06);
+.signoutBtn,
+.changeLocationBtn {
+  padding: 10px 16px;
+  background-color: var(--primary-500);
+  color: var(--white);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  box-shadow: 0 4px 12px rgba(16,24,40,0.06);
 }
 
-.localSharingBtn{
-    background-color: var(--tertiary-500);
-    color: var(--white);
+.localSharingBtn {
+  background-color: var(--tertiary-500);
+  color: var(--tertiary-900);
+}
+
+.changeLocationBtn {
+  background-color: var(--blue-v);
+  color: var(--white);
 }
 
 .signoutBtn:hover {
-    background-color: var(--primary-700);
-    transform: translateY(-2px);
+  background-color: var(--primary-700);
+  transform: translateY(-2px);
 }
 
-/* Location sharing display on profile */
-.locationSharing {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 8px;
-}
-.locationBadge {
-    font-family: "Orbitron", sans-serif;
-    padding: 6px 10px;
-    border-radius: 999px;
-    background-color: var(--tertiary-100);
-    color: var(--tertiary-900);
-    font-weight: 700;
-    font-size: 0.85rem;
-}
-.locationControls {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-.locationSelect {
-    padding: 0.6rem 0.75rem;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    background-color: var(--map-bg);
-    min-width: 180px;
+.localSharingBtn:hover {
+  background-color: var(--tertiary-600);
+  transform: translateY(-2px);
 }
 
-.locationUpdateBtn {
-    padding: 8px 12px;
-    border-radius: 10px;
-    border: none;
-    background-color: var(--secondary-base);
-    color: var(--secondary-darkest);
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 3px 10px rgba(2,6,23,0.04);
+.changeLocationBtn:hover {
+  background-color: var(--blue-v-dark);
+  transform: translateY(-2px);
 }
-.locationUpdateBtn:hover { filter: brightness(1.05); transform: translateY(-1px); }
 
-/* small screens: stack content and reduce image size */
 @media (max-width: 768px) {
-    .profileContainer {
-        grid-template-columns: 1fr;
-        padding: 16px;
-        gap: 12px;
-    }
-
-    .profileImage,
-    .userInfo .profileImage {
-        width: 96px;
-        height: 96px;
-    }
-
-    .consumptionInfo {
-        order: 2;
-        padding: 12px;
-    }
+  .profileContainer {
+    padding: 24px;
+    gap: 20px;
+  }
+  .profileImage {
+    width: 120px;
+    height: 120px;
+  }
+  .displayName {
+    font-size: 1.75rem;
+  }
+  .infoSection {
+    padding: 20px;
+  }
+  .buttonContainer {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .localSharingBtn,
+  .signoutBtn,
+  .changeLocationBtn {
+    width: 100%;
+    text-align: center;
+  }
 }
 
-/* very small mobile adjustments */
 @media (max-width: 420px) {
-    .profileContainer {
-        padding: 12px;
-        border-radius: 10px;
-    }
-
-    .userInfo h1 {
-        font-size: 1.1rem;
-    }
+  .profileContainer {
+    padding: 16px;
+    border-radius: 10px;
+  }
+  .profileImage {
+    width: 100px;
+    height: 100px;
+  }
+  .displayName {
+    font-size: 1.5rem;
+  }
+  .infoSection {
+    padding: 16px;
+  }
 }
 
-/* Dialog / Sharing form styles (reused from Inventory.module.css) */
 .dialogBackdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
 }
 
 .dialogContent {
-    background-color: var(--sidebar-bg);
-    color: var(--sidebar-text);
-    padding: 1.5rem 2rem 2rem;
-    border-radius: 12px;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    width: 90%;
-    max-width: 600px;
-    position: relative;
-    max-height: 90vh;
-    overflow-y: auto;
+  background-color: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  padding: 1.5rem 2rem 2rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 600px;
+  position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .dialogTitle {
-    font-family: "Orbitron", sans-serif;
-    margin-top: 0;
-    margin-bottom: 1.5rem;
-    font-size: 1.5rem;
-    border-bottom: 2px solid var(--secondary-base);
-    padding-bottom: 0.5rem;
+  font-family: "Orbitron", sans-serif;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  border-bottom: 2px solid var(--secondary-base);
+  padding-bottom: 0.5rem;
 }
 
 .dialogClose {
-    position: absolute;
-    top: 10px;
-    right: 15px;
-    background: transparent;
-    border: none;
-    font-size: 1.75rem;
-    font-weight: 300;
-    color: var(--sidebar-text-muted);
-    cursor: pointer;
-    padding: 0;
-    line-height: 1;
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: transparent;
+  border: none;
+  font-size: 1.75rem;
+  font-weight: 300;
+  color: var(--sidebar-text-muted);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
 }
 
 .dialogClose:hover {
-    color: var(--sidebar-text);
+  color: var(--sidebar-text);
 }
 
 .dialogContent .sharingForm {
-    padding-top: 1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1.5rem;
-    flex-wrap: wrap;
+  padding-top: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .sharingFormLeft {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    flex-wrap: wrap;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  flex: 1;
 }
 
 .sharingCurrentSetting {
-    margin: 0;
-    white-space: nowrap;
-    color: var(--sidebar-text-muted);
+  margin: 0;
+  white-space: nowrap;
+  color: var(--sidebar-text-muted);
+  width: 100%;
+  margin-bottom: 10px;
 }
 
 .sharingCurrentSetting strong {
-    color: var(--sidebar-text);
-    font-weight: 700;
+  color: var(--sidebar-text);
+  font-weight: 700;
 }
 
-.sharingFormLeft .formGroup {
-    margin-bottom: 0;
-    display: flex;
-    align-items: center;
-    flex-direction: row;
-    gap: 0.5rem;
+.formGroup {
+  width: 100%;
 }
 
-.sharingFormLeft .formGroup label {
-    margin: 0;
-    white-space: nowrap;
-}
-
-.dialogContent .sharingForm .formButton {
-    margin: 0;
+.formGroup label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--sidebar-text);
 }
 
 .formInput,
 .formSelect {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 0.75rem;
-    font-family: "Montserrat", sans-serif;
-    font-size: 1rem;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    background-color: var(--map-bg);
-    transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem;
+  font-family: "Open Sans", sans-serif;
+  font-size: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--map-bg);
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 .formInput:focus,
 .formSelect:focus {
-    outline: none;
-    border-color: var(--secondary-base);
-    box-shadow: 0 0 0 2px var(--secondary-light);
+  outline: none;
+  border-color: var(--secondary-base);
+  box-shadow: 0 0 0 2px var(--secondary-light);
 }
 
 .formButton {
-    font-family: "Orbitron", sans-serif;
-    font-size: 0.95rem;
-    font-weight: 700;
-    padding: 0.6rem 1.25rem;
-    border-radius: 50px;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    background-color: var(--secondary-base);
-    color: var(--secondary-darkest);
-    flex-shrink: 0;
+  font-family: "Orbitron", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.75rem 1.25rem;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: var(--secondary-base);
+  color: var(--secondary-darkest);
+  flex-shrink: 0;
 }
 .formButton:hover {
-    filter: brightness(1.1);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 .formButton:active {
-    transform: translateY(0);
+  transform: translateY(0);
 }
 
-.formButton.buttonDanger {
-    background-color: var(--primary-500);
-    color: var(--white);
+.dialogSubtitle {
+  font-size: 0.95rem;
+  color: var(--sidebar-text-muted);
+  margin-top: -1.25rem;
+  margin-bottom: 1rem;
 }
-.formButton.buttonDanger:hover {
-    background-color: var(--primary-500);
-    filter: brightness(1.1);
+
+.mapWrapper {
+  width: 100%;
+  height: 300px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+}
+
+.locationPickerMap {
+  width: 100%;
+  height: 100%;
+}
+
+.dialogFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.buttonPrimary {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 4px;
+  background-color: var(--primary-500);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.buttonPrimary:hover {
+  background-color: var(--primary-600);
+}
+
+.buttonPrimary:disabled {
+  background-color: var(--grey-300);
+  cursor: not-allowed;
+}
+
+.buttonSecondary {
+  padding: 10px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background-color: #ffffff;
+  color: var(--sidebar-text);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.buttonSecondary:hover {
+  background-color: var(--grey-100);
+}
+
+.buttonSecondary:disabled {
+  background-color: var(--grey-100);
+  color: var(--grey-400);
+  cursor: not-allowed;
+}
+
+.locationStatus {
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  min-height: 1.5em;
+}
+
+.successText {
+  color: var(--secondary-base);
+}
+
+.errorText {
+  color: var(--primary-500);
+}
+
+.marker-svg {
+  width: 32px;
+  height: 32px;
+  filter: drop-shadow(0px 3px 3px rgba(0, 0, 0, 0.5));
+}
+
+@media (max-width: 550px) {
+  .dialogContent .sharingForm {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .sharingFormLeft {
+    gap: 1rem;
+  }
+  .dialogContent .sharingForm .formButton {
+    width: 100%;
+  }
 }
