@@ -9,7 +9,7 @@ import { updateConsumptionSharingPrivacy } from "../firebaseServices/database/us
 import useAuth from "../firebaseServices/auth/useAuth";
 import IoTMonitor from "../components/inventory/IoTMonitor";
 import EditApplianceForm from "../components/inventory/EditApplianceForm";
-import DetectionModal from "../components/inventory/DetectionModal"; // <-- Import the modal
+import DetectionModal from "../components/inventory/DetectionModal";
 import { useEffect, useState, useMemo } from "react";
 import { ResponsivePie } from "@nivo/pie";
 import { Settings, Plus, Camera } from "lucide-react";
@@ -49,7 +49,6 @@ function Inventory() {
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
   const [isDetectDialogOpen, setIsDetectDialogOpen] = useState(false);
 
-  
   const applianceTypes = useMemo(() => {
     if (!applianceData) return [];
     const types = applianceData.map(item => item.appliance_name);
@@ -89,13 +88,11 @@ function Inventory() {
     return () => unsubscribe();
   }, [user?.uid]);
 
-  // Pie chart logic with grouping to prevent crashes
   const pieData = useMemo(() => {
     if (!appliances || appliances.length === 0) {
       return [{ id: "No Data", label: "No Data", value: 1, color: "#cccccc" }];
     }
 
-    // 1. Aggregate by Name to prevent duplicate IDs
     const aggregated = appliances.reduce((acc, app) => {
       const name = app.name || "Unknown";
       const val = parseFloat(app.monthlyCost?.toFixed(2) || 0);
@@ -103,14 +100,12 @@ function Inventory() {
       return acc;
     }, {});
 
-    // 2. Convert to array
     let dataArr = Object.entries(aggregated).map(([key, val]) => ({
       id: key,
       label: key,
       value: val,
     }));
 
-    // 3. Handle Case: All values are 0
     const totalValue = dataArr.reduce((sum, item) => sum + item.value, 0);
     if (totalValue === 0) {
       return [
@@ -118,10 +113,8 @@ function Inventory() {
       ];
     }
 
-    // 4. Sort descending
     dataArr.sort((a, b) => b.value - a.value);
 
-    // 5. Group into "Others" if > 5 items
     if (dataArr.length > 5) {
       const top5 = dataArr.slice(0, 5);
       const others = dataArr.slice(5);
@@ -259,7 +252,7 @@ function Inventory() {
       
       await addApplianceToInventory(user.uid, applianceData);
       
-     
+      
       setFormData({
         name: "", type: "", wattage: "", hoursPerDay: "",
         specificDaysUsed: { monday: false, tuesday: false, wednesday: false, thursday: false, friday: false, saturday: false, sunday: false },
@@ -269,13 +262,10 @@ function Inventory() {
       setIsAddDialogOpen(false);
     } catch (error) {
       console.error("Error adding appliance:", error);
-      alert("Failed to add appliance. Please try again.");
     }
   };
 
   const handleRemoveAppliance = async (applianceId) => {
-    if (!window.confirm("Are you sure you want to remove this appliance?"))
-      return;
     try {
       const result = await removeApplianceFromInventory(user.uid, applianceId);
       if (result.success) {
@@ -285,7 +275,6 @@ function Inventory() {
       }
     } catch (error) {
       console.error("Error removing appliance:", error);
-      alert("Failed to remove appliance. Please try again.");
     }
   };
 
@@ -333,14 +322,12 @@ function Inventory() {
       setEditFormData(null);
     } catch (error) {
       console.error("Error updating appliance:", error);
-      alert("Failed to update appliance. Please try again.");
     }
   };
 
   const handlePrivacyUpdate = async (e) => {
     e.preventDefault();
     if (!privacySetting) {
-      alert("Please select a privacy setting.");
       return;
     }
     try {
@@ -348,7 +335,6 @@ function Inventory() {
       setIsSettingsDialogOpen(false);
     } catch (error) {
       console.error("Error updating privacy setting:", error);
-      alert("Failed to update privacy setting. Please try again.");
     }
   };
 
@@ -360,7 +346,6 @@ function Inventory() {
     });
   };
 
-  // Handles detection data from the child modal
   const handleDetectionComplete = async (detectionData) => {
     const { details, originalFile } = detectionData;
 
@@ -399,7 +384,6 @@ function Inventory() {
 
         await addApplianceToInventory(user.uid, applianceData);
 
-        // Reset manual form state as a precaution
         setFormData({
           name: "",
           type: "",
@@ -420,10 +404,8 @@ function Inventory() {
         });
       } catch (error) {
         console.error("Error adding detected appliance:", error);
-        alert("Failed to add detected appliance. Please try again.");
       }
     }
-    // Modals stay open to allow further detections
   };
 
   const formatPrivacySetting = (setting) => {
@@ -617,7 +599,11 @@ function Inventory() {
                   <button
                     className={styles.formButton}
                     onClick={() => handleToggleMonitor(appliance.id)}
-                    disabled={editingApplianceId === appliance.id}
+                    disabled={
+                      editingApplianceId === appliance.id ||
+                      (monitoringApplianceId === appliance.id &&
+                        appliance?.iotConnection?.isCurrentlyOn)
+                    }
                   >
                     {monitoringApplianceId === appliance.id
                       ? "Hide Monitor"
@@ -950,7 +936,6 @@ function Inventory() {
         </div>
       )}
 
-      {/* Render the Detection Modal when state is true */}
       {isDetectDialogOpen && (
         <DetectionModal
           onClose={() => setIsDetectDialogOpen(false)}
