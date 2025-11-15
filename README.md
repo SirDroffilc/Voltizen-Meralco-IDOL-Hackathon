@@ -1,6 +1,6 @@
 # ⚡Voltizen 
 
-> A unified "social utility" platform from Team BoltezV — Meralco IDOL Hackathon 2025.
+> A unified "social utility" platform that builds and improves upon select features of the Meralco App. This full-stack project was developed and submitted for the Meralco IDOL Hackathon 2025.
 
 Voltizen helps households move from "bill shock" to "bill control" by combining appliance-level consumption insights with community-driven maps and reporting.
 
