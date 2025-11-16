@@ -43,10 +43,10 @@ These pieces turn passive consumers into empowered, connected "Voltizens" who ca
 -   Image hosting: Cloudinary
 -   Version control: Git & GitHub
 
-## Team (BoltezV)
+## Development Team (BoltezV)
 
 -   Ford Torion — Back-End Developer
 -   Patrick Ancajas — Front-End Developer
 -   Axel Arceleta — Back-End Developer
 -   Anthon Maniago — AI/ML Developer
--   Irwen Fronda — Frontend Developer
+-   Irwen Fronda — Front-End Developer
