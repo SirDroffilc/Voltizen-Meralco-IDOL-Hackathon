@@ -2,7 +2,7 @@
 
 > A unified "social utility" platform that builds and improves upon select features of the Meralco App. This full-stack project was developed and submitted for the Meralco IDOL Hackathon 2025.
 
-Voltizen helps households move from "bill shock" to "bill control" by combining appliance-level consumption insights with community-driven maps and reporting.
+[Voltizen](https://voltizen.vercel.app/) helps households move from "bill shock" to "bill control" by combining appliance-level consumption insights with community-driven maps and reporting.
 
 ## Problem — "Bill Shock"
 
@@ -45,12 +45,8 @@ These pieces turn passive consumers into empowered, connected "Voltizens" who ca
 
 ## Team (BoltezV)
 
--   Ford Torion — Project Manager / Backend Lead
--   Patrick Ancajas — Frontend Lead
--   Axel Arceleta — Backend Lead
--   Anthon Maniago — AI/ML Lead
--   Irwen Fronda — Frontend Lead
-
----
-
-For setup, usage notes, and contribution guidelines see the `src/` folder and the project documentation.
+-   Ford Torion — Back-End Developer
+-   Patrick Ancajas — Front-End Developer
+-   Axel Arceleta — Back-End Developer
+-   Anthon Maniago — AI/ML Developer
+-   Irwen Fronda — Frontend Developer
