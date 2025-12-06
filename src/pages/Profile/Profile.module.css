@@ -108,6 +108,7 @@
 
 .localSharingBtn:hover {
   background-color: var(--tertiary-600);
+  
   transform: translateY(-2px);
 }
 
@@ -230,15 +231,12 @@
   align-items: center;
   gap: 1.5rem;
   flex-wrap: wrap;
-  flex: 1;
 }
 
 .sharingCurrentSetting {
   margin: 0;
   white-space: nowrap;
   color: var(--sidebar-text-muted);
-  width: 100%;
-  margin-bottom: 10px;
 }
 
 .sharingCurrentSetting strong {
@@ -246,16 +244,21 @@
   font-weight: 700;
 }
 
-.formGroup {
-  width: 100%;
+.sharingFormLeft .formGroup {
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  gap: 0.5rem;
 }
 
-.formGroup label {
-  display: block;
-  margin-bottom: 6px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: var(--sidebar-text);
+.sharingFormLeft .formGroup label {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.dialogContent .sharingForm .formButton {
+  margin: 0;
 }
 
 .formInput,
