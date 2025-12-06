@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import {
   listenToUserFeed,
   sendConnectionRequest,
+  cancelConnectionRequest,
   connectTwoUsers,
   disconnectTwoUsers,
 } from "../../firebaseServices/database/usersFunctions";
@@ -60,6 +61,15 @@ function Connections() {
     }
   };
 
+  const handleCancelRequest = async (receiverId) => {
+    try {
+      await cancelConnectionRequest(user.uid, receiverId);
+      console.log(`Connection request to ${receiverId} cancelled`);
+    } catch (error) {
+      console.error("Error cancelling connection request:", error);
+    }
+  };
+
   const handleRemoveConnection = async (connectionId) => {
     if (!user?.uid) return;
     setDisconnectingId(connectionId);
@@ -100,7 +110,15 @@ function Connections() {
         </button>
       );
     } else if (iSentThemRequest) {
-      return <button className={styles.requestedBtn} disabled >Requested</button>;
+      return (
+        <button 
+          className={styles.requestedBtn} 
+          onClick={() => handleCancelRequest(nonConnection.id)}
+          style={{ pointerEvents: 'auto', cursor: 'pointer', background: '#ff6b6b', color: 'white' }}
+        >
+          Cancel Request
+        </button>
+      );
     } else {
       return (
         <button className={styles.requestBtn} onClick={() => handleSendRequest(nonConnection.id)}>
