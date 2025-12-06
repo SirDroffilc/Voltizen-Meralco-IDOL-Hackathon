@@ -21,12 +21,40 @@
 
 .findButton {
   font-family: "Orbitron", sans-serif;
-  padding: 0.5rem 1rem;
-  border-radius: 50px;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: 20px;
   border: none;
   background: var(--secondary-base);
   color: var(--secondary-darkest);
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.findButton svg {
+  min-width: 20px;
+}
+
+.findButtonText {
+  max-width: 0;
+  opacity: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: max-width 0.4s ease, opacity 0.3s ease, margin-left 0.3s ease;
+}
+
+.findButton:hover {
+  padding-right: 1rem;
+}
+
+.findButton:hover .findButtonText {
+  max-width: 200px;
+  opacity: 1;
+  margin-left: 0.5rem;
 }
 
 .connectionList {
@@ -138,14 +166,28 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.connectionActions .requestBtn {
+.connectionActions .requestBtn,
+.sendConnectionRequest .requestBtn {
   background: var(--secondary-base);
   color: var(--secondary-darkest);
+}
+
+.connectionActions .requestBtn:hover:not(:disabled),
+.sendConnectionRequest .requestBtn:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .sendConnectionRequest .confirmBtn {
   background: var(--blue-v);
   color: var(--white);
+}
+
+.sendConnectionRequest .confirmBtn:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .connectionActions .requestedBtn,

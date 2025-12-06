@@ -7,6 +7,7 @@ import {
   disconnectTwoUsers,
 } from "../../firebaseServices/database/usersFunctions";
 import { Link } from "react-router-dom";
+import { Plus } from "lucide-react";
 import styles from './Connections.module.css';
 
 function Connections() {
@@ -126,7 +127,10 @@ function Connections() {
     <div className={styles.connectionsContainer}>
       <div className={styles.headerConnection}>
         <h1>Your Connections</h1>
-        <button className={styles.findButton} onClick={() => setFindConnectionsLoading(true)}>Find Connections</button>
+        <button className={styles.findButton} onClick={() => setFindConnectionsLoading(true)}>
+          <Plus size={20} />
+          <span className={styles.findButtonText}>Find Connections</span>
+        </button>
       </div>
       {connectionsDetails.length === 0 ? (
         <p>You haven't added any connections yet.</p>
@@ -149,11 +153,6 @@ function Connections() {
                 <h2>{connection.displayName}</h2>
                 <p>Credibility Score: {connection.credibilityScore}</p>
                 <div className={styles.connectionsBtn}>
-                  {/* {[("connectionsOnly"), ("public")].includes(connection.locationSharingPrivacy) && (
-                    <Link to={`/mappage`}>
-                      <button className={styles.locateMapBtn}>Locate in the map</button>
-                    </Link>
-                  )} */}
                   {[("public"), ("connectionsOnly")].includes(connection.consumptionSharingPrivacy) && (
                     <>
                       <Link to={`/connections/${connection.id}/inventory`}>
