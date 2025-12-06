@@ -152,20 +152,18 @@ function Inventory() {
         const applianceDefaults = applianceData.find((app) => app.appliance_name === selectedType);
 
         if (applianceDefaults) {
+          // Dropdown selection: auto-fill wattage and default image, but do NOT overwrite name
           setFormData((prevData) => ({
             ...prevData,
             type: selectedType,
-            name: applianceDefaults.appliance_name || "",
-            wattage: applianceDefaults.wattage || "",
-            defaultImageUrl: applianceDefaults.url || "",
+            wattage: applianceDefaults.wattage ?? prevData.wattage ?? "",
+            defaultImageUrl: applianceDefaults.url ?? prevData.defaultImageUrl ?? "",
           }));
         } else {
+          // User is typing a custom type — do not clear other fields; only update `type`.
           setFormData((prevData) => ({
             ...prevData,
             type: selectedType,
-            name: "",
-            wattage: "",
-            defaultImageUrl: "",
           }));
         }
       } else {

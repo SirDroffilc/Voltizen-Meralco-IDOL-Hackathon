@@ -25,10 +25,10 @@ function NavigationBar() {
               <NavLink to="/inventory">Inventory</NavLink>
             </li>
             <li className={styles.navItem}>
-              <NavLink to="/profile">Profile</NavLink>
+              <NavLink to="/connections">Connections</NavLink>
             </li>
             <li className={styles.navItem}>
-              <NavLink to="/connections">Connections</NavLink>
+              <NavLink to="/profile">Profile</NavLink>
             </li>
           </>
         )}
