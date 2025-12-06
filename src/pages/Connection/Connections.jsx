@@ -147,7 +147,7 @@ function Connections() {
 
               <div className={styles.connectionMeta}>
                 <h2>{connection.displayName}</h2>
-                <p>Email: {connection.email}</p>
+                <p>Credibility Score: {connection.credibilityScore}</p>
                 <div className={styles.connectionsBtn}>
                   {/* {[("connectionsOnly"), ("public")].includes(connection.locationSharingPrivacy) && (
                     <Link to={`/mappage`}>
