@@ -445,6 +445,43 @@ export async function sendConnectionRequest(senderId, receiverId) {
 }
 
 /**
+ * Cancels a connection request sent by the sender to the receiver.
+ *
+ * @param {string} senderId - The UID of the user who sent the request.
+ * @param {string} receiverId - The UID of the user who received the request.
+ * @returns {Promise<object>} - A promise that resolves to an object containing success status and message.
+ * @throws {Error} - Throws an error if validation fails or the operation encounters an issue.
+ */
+export async function cancelConnectionRequest(senderId, receiverId) {
+  if (!senderId || !receiverId) {
+    throw new Error("Cancel Request Error: senderId and receiverId must be present");
+  }
+
+  try {
+    const senderDocRef = doc(db, "users", senderId);
+    const receiverDocRef = doc(db, "users", receiverId);
+
+    // Remove the request from sender's pendingRequestsOut and receiver's pendingRequestsIn
+    await Promise.all([
+      updateDoc(senderDocRef, {
+        [`pendingRequestsOut.${receiverId}`]: deleteField(),
+      }),
+      updateDoc(receiverDocRef, {
+        [`pendingRequestsIn.${senderId}`]: deleteField(),
+      }),
+    ]);
+
+    return {
+      success: true,
+      message: `Connection request from ${senderId} to ${receiverId} cancelled.`,
+    };
+  } catch (error) {
+    console.error("Error cancelling connection request: ", error);
+    throw error;
+  }
+}
+
+/**
  * Checks if two users are either connected or have a pending connection request between them.
  *
  * @param {string} userId1 - The UID of the first user.
