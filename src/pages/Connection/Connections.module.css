@@ -138,14 +138,28 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.connectionActions .requestBtn {
+.connectionActions .requestBtn,
+.sendConnectionRequest .requestBtn {
   background: var(--secondary-base);
   color: var(--secondary-darkest);
+}
+
+.connectionActions .requestBtn:hover:not(:disabled),
+.sendConnectionRequest .requestBtn:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .sendConnectionRequest .confirmBtn {
   background: var(--blue-v);
   color: var(--white);
+}
+
+.sendConnectionRequest .confirmBtn:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .connectionActions .requestedBtn,
