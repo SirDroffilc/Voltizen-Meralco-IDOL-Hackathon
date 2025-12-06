@@ -15,11 +15,13 @@
   --tertiary-50: #fffaed;
   --tertiary-100: #fdefc6;
   --tertiary-300: #fcdb83;
-  --tertiary-500: #faca46;
+  --tertiary-500: hsl(44, 95%, 63%);
+  --tertiary-600: hsl(44, 95%, 53%);
   --tertiary-700: #b28f32;
   --tertiary-900: #69551d; 
 
-  --blue-v: #00429b;
+  --blue-v: hsl(214, 100%, 30%);
+  --blue-v-dark: hsl(214, 100%, 20%);
   --black-v: #222222;
 
   --sidebar-bg: var(--tertiary-50);
