@@ -243,6 +243,19 @@ function Profile() {
         <p className={styles.infoItem}>
           <strong>Email:</strong> {currentFirestoreUser.email}
         </p>
+
+        <p className={styles.infoItem}>
+          <strong>Credibility Score:</strong>{" "}
+          {currentFirestoreUser.credibilityScore || 0}
+        </p>
+
+        <p className={styles.infoItem}>
+          <strong>Connections:</strong>
+          {currentFirestoreUser.connections
+            ? ` ${Object.keys(currentFirestoreUser.connections).length}`
+            : " 0"}
+        </p>
+
         <p className={styles.infoItem}>
           <strong>Location:</strong>{" "}
           {currentFirestoreUser.location
