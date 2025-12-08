@@ -48,6 +48,19 @@ function Inventory() {
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
   const [isDetectDialogOpen, setIsDetectDialogOpen] = useState(false);
+  // const [meralcoRate, setMeralcoRate] = useState(13.4702);
+
+  // useEffect(() => {
+  //   async function fetchRate() {
+  //     try {
+  //       const rate = await getMeralcoRate();
+  //       setMeralcoRate(rate);
+  //     } catch (e) {
+  //       console.error("Failed to fetch rate", e);
+  //     }
+  //   }
+  //   fetchRate();
+  // }, []);
 
   const applianceTypes = useMemo(() => {
     if (!applianceData) return [];
@@ -495,6 +508,7 @@ function Inventory() {
                 {firestoreUser?.consumptionSummary?.applianceCount ?? 0}
               </span>
             </div>
+
             <div className={styles.summaryItem}>
               <p>Est. Daily Bill</p>
               <span>
@@ -504,6 +518,7 @@ function Inventory() {
                 ) ?? "0.00"}
               </span>
             </div>
+
             <div className={styles.summaryItem}>
               <p>Est. Monthly Bill</p>
               <span>
@@ -513,6 +528,17 @@ function Inventory() {
                 ) ?? "0.00"}
               </span>
             </div>
+
+            <div className={styles.summaryItem}>
+              <p>Meralco Rate</p>
+              <span>
+                PHP{" "}
+                {(
+                  firestoreUser?.consumptionSummary?.meralcoRate ?? 13
+                ).toFixed(2)}
+              </span>
+            </div>
+
           </div>
         </div>
       </section>

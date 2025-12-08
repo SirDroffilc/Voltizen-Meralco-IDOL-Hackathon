@@ -1,7 +1,5 @@
-import { useEffect, useState } from "react";
-import useAuth from "../auth/useAuth";
 import { db } from "../firebaseConfig";
-import { where, collection, orderBy, addDoc, doc, updateDoc, getDoc, setDoc, GeoPoint, deleteField, onSnapshot, query, documentId, deleteDoc, getDocs } from "firebase/firestore";
+import { collection, orderBy, addDoc, doc, updateDoc, getDoc, setDoc, onSnapshot, query, deleteDoc, getDocs } from "firebase/firestore";
 
 // Environment Variables
 const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
@@ -187,13 +185,12 @@ export async function removeApplianceFromInventory(userId, applianceId) {
 export async function getMeralcoRate() {
   const rateDocRef = doc(db, "settings", "meralcoRate");
   
+  // 1. Try to get cached rate
   try {
-    // Get cached rate from Firebase
     const rateDoc = await getDoc(rateDocRef);
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     
-    // Check if we have a cached rate for the current month
     if (rateDoc.exists()) {
       const data = rateDoc.data();
       if (data.month === currentMonth && data.rate) {
@@ -201,8 +198,12 @@ export async function getMeralcoRate() {
         return data.rate;
       }
     }
+  } catch (error) {
+    console.warn("Could not fetch cached rate (likely permissions), proceeding to API fetch.");
+  }
     
-    // Fetch new rate from API
+  // 2. Fetch new rate from API
+  try {
     console.log("Fetching new Meralco rate from API...");
     const response = await fetch("https://meralco-rate-api.onrender.com/rate");
     
@@ -213,21 +214,27 @@ export async function getMeralcoRate() {
     const rateData = await response.json();
     const newRate = rateData.rate;
     
-    // Cache the new rate in Firebase (use setDoc to create if doesn't exist)
-    await setDoc(rateDocRef, {
-      rate: newRate,
-      month: currentMonth,
-      lastUpdated: new Date(),
-      source: rateData.source,
-      published: rateData.published,
-    }, { merge: true }); // merge: true will update if exists, create if doesn't
+    // 3. Try to cache the new rate in Firebase
+    try {
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      await setDoc(rateDocRef, {
+        rate: newRate,
+        month: currentMonth,
+        lastUpdated: new Date(),
+        source: rateData.source,
+        published: rateData.published,
+      }, { merge: true });
+    } catch (cacheError) {
+      console.warn("Could not cache rate to Firestore (likely permissions).");
+    }
     
     console.log("Meralco rate updated:", newRate);
     return newRate;
     
   } catch (error) {
     console.error("Error fetching Meralco rate, using fallback:", error);
-    return 13.4702;;
+    return 13.4702;
   }
 }
 
@@ -359,6 +366,9 @@ export async function updateUserConsumptionSummary(userId) {
     // Calculate the consumption summary
     const consumptionSummary = calculateConsumptionSummary(appliancesData);
 
+    // Get current rate
+    const currentRate = await getMeralcoRate();
+
     // Update the user's consumption summary field in Firestore
     await updateDoc(userDocRef, {
       consumptionSummary: {
@@ -367,6 +377,7 @@ export async function updateUserConsumptionSummary(userId) {
         estimatedWeeklyBill: consumptionSummary.totalWeeklyCost,
         estimatedMonthlyBill: consumptionSummary.totalMonthlyCost,
         topAppliance: consumptionSummary.topAppliance,
+        meralcoRate: currentRate,
       },
     });
 
