@@ -257,6 +257,13 @@ function Profile() {
         </p>
 
         <p className={styles.infoItem}>
+          <strong>Upvotes:</strong>{" "}
+          {currentFirestoreUser.reportIdsUpvoted
+            ? Object.keys(currentFirestoreUser.reportIdsUpvoted).length
+            : 0}
+        </p>
+
+        <p className={styles.infoItem}>
           <strong>Location:</strong>{" "}
           {currentFirestoreUser.location
             ? `GeoPoint(${currentFirestoreUser.location.latitude.toFixed(
