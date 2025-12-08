@@ -624,7 +624,6 @@ function Inventory() {
                     className={styles.formButton}
                     onClick={() => handleToggleMonitor(appliance.id)}
                     disabled={
-                      editingApplianceId === appliance.id ||
                       (monitoringApplianceId === appliance.id &&
                         appliance?.iotConnection?.isCurrentlyOn)
                     }
@@ -656,7 +655,6 @@ function Inventory() {
                         <button
                           className={styles.formButton}
                           onClick={() => handleEditAppliance(appliance)}
-                          disabled={monitoringApplianceId === appliance.id}
                         >
                           Edit
                         </button>
