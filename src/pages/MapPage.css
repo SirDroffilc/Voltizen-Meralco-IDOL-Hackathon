@@ -846,22 +846,46 @@
 @media (max-width: 768px) {
   .info-sidebar {
     position: absolute;
-    top: 0;
+    bottom: 0;
     left: 0;
-    width: 320px;
-    transform: translateX(-100%);
-    z-index: 2000;
+    right: 0;
+    width: 100%;
+    height: 40vh;
+    max-height: 400px;
+    padding: 16px 20px;
+    transform: translateY(100%);
+    z-index: 1500;
+    border-right: none;
+    border-top: 2px solid var(--border-color);
+    border-radius: 16px 16px 0 0;
   }
   .info-sidebar.open {
-    transform: translateX(0);
+    transform: translateY(0);
   }
   .sidebar-toggle-button {
     display: flex;
+    top: auto;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  
+  .info-sidebar.open ~ .map-content .sidebar-toggle-button {
+    bottom: calc(40vh + 20px);
+    max-bottom: 420px;
   }
   .controls-bottom-right {
-    bottom: 10px;
+    bottom: calc(40vh + 30px);
     right: 10px;
     gap: 8px;
+  }
+  
+  .info-sidebar.open ~ .map-content .controls-bottom-right {
+    bottom: calc(40vh + 30px);
+  }
+  
+  body:has(.info-sidebar:not(.open)) .controls-bottom-right {
+    bottom: 20px;
   }
   .map-button-circle {
     width: 44px;
@@ -884,6 +908,109 @@
     flex-direction: column;
     width: 100%;
     gap: 8px;
+  }
+  
+  .sidebar-section h1 {
+    font-size: 1.3rem;
+    margin-bottom: 6px;
+    padding-bottom: 8px;
+  }
+  
+  .marker-data-display h1 {
+    font-size: 1.2rem;
+    padding-bottom: 8px;
+  }
+  
+  .marker-data-display h4 {
+    font-size: 0.8rem;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+  }
+  
+  .marker-data-display p {
+    font-size: 0.85rem;
+    margin: 6px 0;
+  }
+  
+  .marker-data-display .detail-description {
+    font-size: 0.9rem;
+  }
+  
+  .connection-details {
+    gap: 8px;
+    margin-top: 12px;
+  }
+  
+  .connection-pfp {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .connection-name {
+    font-size: 0.95rem;
+  }
+  
+  .connection-score {
+    font-size: 0.8rem;
+  }
+  
+  .marker-image-wrapper {
+    margin-top: 12px;
+  }
+  
+  .marker-data-display .details,
+  .marker-data-display .location,
+  .marker-data-display .status {
+    margin-top: 16px;
+  }
+  
+  .vote-controls-wrapper {
+    margin-top: 16px;
+    padding-top: 16px;
+  }
+  
+  .vote-controls .vote-button {
+    padding: 6px 12px;
+  }
+  
+  .vote-controls .vote-button span {
+    font-size: 1rem;
+  }
+  
+  .admin-approval-controls {
+    margin-top: 16px;
+  }
+  
+  .admin-buttons button,
+  .admin-approval-controls .edit-status-button {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+  
+  .sidebar-default-content .voltizen-title {
+    font-size: 1.6rem;
+  }
+  
+  .sidebar-default-content .sidebar-tagline {
+    font-size: 0.9rem;
+  }
+  
+  .sidebar-default-content .sidebar-instruction {
+    font-size: 0.9rem;
+    margin-top: 16px;
+  }
+  
+  .voltizen-logo-img {
+    max-width: 180px;
+  }
+  
+  .view-inventory-btn {
+    padding: 10px 14px;
+    font-size: 0.9rem;
+  }
+  
+  .sidebar-action-button-container {
+    margin-top: 16px;
   }
 }
 
