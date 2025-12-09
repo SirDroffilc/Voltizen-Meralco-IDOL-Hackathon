@@ -530,7 +530,7 @@ function Inventory() {
             </div>
 
             <div className={styles.summaryItem}>
-              <p>Meralco Rate</p>
+              <p>Meralco Rate (per kWh)</p>
               <span>
                 PHP{" "}
                 {(
