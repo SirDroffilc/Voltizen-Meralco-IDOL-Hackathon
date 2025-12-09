@@ -151,35 +151,157 @@
   text-align: center;
 }
 
-/* TABLET VERSION (768px - 1366px) */
-@media (max-width: 1366px) {
+/* MOBILE VERSION (≤768px) */
+@media (max-width: 768px) {
+  .login-container {
+    height: auto;
+    min-height: 100vh;
+    margin: 1.5rem;
+    padding: 0 0.5rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .login-card {
+    flex-direction: column;
+    border-radius: 0;
+    box-shadow: none;
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    min-height: 100vh;
+    min-width: 300px;
+  }
+  .login-content {
+    flex-direction: column;
+    width: 100%;
+    height: auto;
+    min-height: 100vh;
+    padding: 0;
+  }
+  .login-logo-section, .login-auth-section {
+    flex: none;
+    width: 100%;
+    padding: 32px 0 16px 0;
+    border-radius: 0;
+    box-shadow: none;
+    align-items: center;
+    justify-content: center;
+  }
   .login-logo-section {
-    padding: 60px;
+    padding-bottom: 0;
   }
-
   .login-logo-wrapper {
-    width: 100px;
-    height: 100px;
+    width: 70px;
+    height: 70px;
+    border-width: 2px;
+    margin-bottom: 18px;
+    border-radius: 16px;
   }
-
   .login-logo {
-    width: 60px;
-    height: 60px;
+    width: 40px;
+    height: 40px;
   }
-
   .login-brand-name {
-    font-size: 48px;
+    font-size: 2rem;
+    margin-bottom: 10px;
   }
-
   .login-tagline {
-    font-size: 20px;
+    font-size: 1rem;
+    max-width: 90vw;
+    margin-bottom: 0;
   }
-
   .login-auth-section {
-    padding: 60px;
+    box-shadow: none;
+    border-radius: 30px;
+    padding: 5rem 1.5rem;
+    margin: 2rem 0;
+    min-width: 0;
   }
-
+  .login-auth-content {
+    max-width: 100%;
+    width: 100%;
+    padding: 0 0.5rem;
+  }
   .login-heading {
-    font-size: 32px;
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+  }
+  .login-helper-text {
+    font-size: 1rem;
+    margin-bottom: 24px;
+  }
+  .google-btn {
+    font-size: 1rem;
+    padding: 12px 0;
+    border-radius: 8px;
+    width: 100%;
+    gap: 10px;
+  }
+  .google-icon {
+    width: 20px;
+    height: 20px;
+  }
+  .login-footer {
+    font-size: 0.9rem;
+    margin-top: 18px;
+  }
+}
+
+/* TABLET VERSION (769px - 1024px) */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .login-container {
+    margin: 0 1rem;
+    padding: 0 1rem;
+  }
+  .login-logo-section, .login-auth-section {
+    padding: 36px 12px;
+  }
+  .login-logo-wrapper {
+    width: 80px;
+    height: 80px;
+    border-width: 3px;
+    margin-bottom: 24px;
+    border-radius: 20px;
+  }
+  .login-logo {
+    width: 48px;
+    height: 48px;
+  }
+  .login-brand-name {
+    font-size: 2.5rem;
+    margin-bottom: 14px;
+  }
+  .login-tagline {
+    font-size: 1.1rem;
+    max-width: 80vw;
+  }
+  .login-auth-content {
+    max-width: 350px;
+    width: 100%;
+    padding: 0 0.5rem;
+  }
+  .login-heading {
+    font-size: 2rem;
+    margin-bottom: 14px;
+  }
+  .login-helper-text {
+    font-size: 1.1rem;
+    margin-bottom: 32px;
+  }
+  .google-btn {
+    font-size: 1rem;
+    padding: 16px 10px;
+    border-radius: 10px;
+    width: 100%;
+    gap: 12px;
+  }
+  .google-icon {
+    width: 22px;
+    height: 22px;
+  }
+  .login-footer {
+    font-size: 1rem;
+    margin-top: 22px;
   }
 }
