@@ -16,7 +16,8 @@ import ReactDOMServer from "react-dom/server";
 import MarkerClusterGroup from "react-leaflet-markercluster";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
-import voltizenLogo from "../assets/voltizen-logo.png";
+// import voltizenLogo from "../assets/voltizen-logo.png";
+const voltizenLogo = "https://res.cloudinary.com/ddr9shttr/image/upload/v1765377260/voltizen-logo_syh9c8.png";
 import { Link } from "react-router-dom";
 import "./MapPage.css";
 import {

@@ -1,9 +1,10 @@
 import useAuth from "../firebaseServices/auth/useAuth";
-import logo from "../assets/logo.png";
 import "./Login.css";
+
 
 function Login() {
   const { signInWithGoogle } = useAuth();
+  const logo = "https://res.cloudinary.com/ddr9shttr/image/upload/v1765377258/logo_zopxja.png";
 
   return (
     <div className="login-container">

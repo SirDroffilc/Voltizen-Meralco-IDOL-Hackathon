@@ -2,12 +2,12 @@ import { NavLink } from 'react-router-dom';
 import { useState } from 'react';
 import useAuth from "../../firebaseServices/auth/useAuth";
 import styles from './Navigation.module.css';
-import logo from '../../assets/voltizen-logo.png';
 
 function NavigationBar() {
   const { user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
-
+  const logo = "https://res.cloudinary.com/ddr9shttr/image/upload/v1765377260/voltizen-logo_syh9c8.png";
+  
   return (
     <nav className={styles.navbar}>
       <div className={styles.logoContainer}>
